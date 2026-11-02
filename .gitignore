@@ -17,3 +17,6 @@ benchmark/sanitized_sources/
 .DS_Store
 .github/
 AGENTS.md
+/RELEASE_PLAN.md
+/RELEASE_VALIDATION.md
+/requirements-dev.txt

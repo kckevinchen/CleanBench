@@ -86,8 +86,8 @@ scripts/             Offline benchmark verification
 tests/               Store, API, export, import, and scoring checks
 ```
 
-Install `requirements-dev.txt` and run `python -m pytest -q` for the offline
-tests. The [release plan](RELEASE_PLAN.md) records the publication scope.
+After installing `requirements.txt`, run `python -m pytest -q` for the offline
+tests.
 
 ## License
 
