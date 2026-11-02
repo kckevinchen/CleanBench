@@ -37,6 +37,3 @@ predictions remain in ignored `build/` directories.
 One development dependency warning remains: Starlette's test client reports
 that its `httpx` integration is deprecated. All tests pass; the local server
 and browser workflow do not use that test client.
-
-GitHub Actions repeats the offline tests, benchmark verification, compilation,
-and lint checks on Python 3.10 and 3.12 for pushes and pull requests.
