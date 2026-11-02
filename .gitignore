@@ -16,3 +16,4 @@ __pycache__/
 benchmark/sanitized_sources/
 .DS_Store
 .github/
+AGENTS.md
