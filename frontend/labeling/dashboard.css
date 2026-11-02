@@ -1,0 +1,11 @@
+:root { font: 16px/1.5 system-ui, sans-serif; color: #182b3a; background: #f3f6f8; }
+body { margin: 0; } main { max-width: 960px; margin: 36px auto; padding: 0 20px; }
+h1 { margin-bottom: 0; } h2 { font-size: 20px; } header p, .hint, footer { color: #526675; }
+section { background: white; border: 1px solid #d7e0e7; border-radius: 10px; padding: 24px; margin: 24px 0; }
+label { display: block; margin: 12px 0; } input { display: block; margin-top: 5px; max-width: 100%; }
+input[type=text], input:not([type]) { padding: 8px; border: 1px solid #a9bac7; border-radius: 4px; }
+button, .run a { display: inline-block; background: #176782; color: white; border: 0; border-radius: 5px; padding: 9px 16px; cursor: pointer; text-decoration: none; }
+button:disabled { opacity: .6; } .run { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; padding: 14px 0; border-bottom: 1px solid #d7e0e7; }
+.run strong { flex: 1; overflow-wrap: anywhere; } .run span, .hint { font-size: 14px; } #workspace { overflow-wrap: anywhere; }
+:focus-visible { outline: 3px solid #e8a633; outline-offset: 3px; } #message { color: #8b2c21; }
+@media (max-width: 600px) { main { margin: 18px auto; padding: 0 12px; } section { padding: 16px; } .run { gap: 10px; } }

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "cell_labels": {
+    "error": 1409,
+    "ambiguous": 842
+  },
+  "row_labels": {
+    "ambiguous": 21,
+    "error": 25
+  },
+  "tables_by_dataset": {
+    "bing21_500": 500,
+    "pbi_500": 500
+  },
+  "cells_by_dataset": {
+    "bing21_500": 222345,
+    "pbi_500": 142459
+  },
+  "frozen_cell_sha256": "941c91fd13eee4a2ab7169e9a9fa3b833e9913530843719f91984e079011f3a2",
+  "files": {
+    "benchmark_cell.json": "941c91fd13eee4a2ab7169e9a9fa3b833e9913530843719f91984e079011f3a2",
+    "benchmark_row.json": "b7377fee33b92620341f494a29ca46a0d0b75b09a9fd22b4816749e4c9453c85",
+    "eval_cleanbench.py": "8a04d77d5166927196092279c499a52c4d01382217c9bdbb296b5f416d2ea11b",
+    "ignored.jsonl": "d20b2a8f5d5b532a04685d7740334f8e0aaab3eeb6ae2d13c0377cf7f0b0a617",
+    "neutral_cells.jsonl": "cf02c655a3491950a9cb5679ad122cb365a7962d519f582f77043c3334ab83ee",
+    "sanitized_sources.zip": "27d71c0c815102bded5e9d35134923962dce62d4d68221093623b53e0c8ac2ee"
+  },
+  "source_snapshot_sha256": "9339eb5569f7c828e7edc30f06c2f18ca70162c475e9fc60249df6906b5dd1a6"
+}

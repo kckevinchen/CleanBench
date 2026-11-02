@@ -1,0 +1,17 @@
+.venv/
+venv/
+workspace/
+data/
+outputs/
+logs/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
+benchmark/sanitized_sources/
+.DS_Store

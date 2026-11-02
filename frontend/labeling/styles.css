@@ -1,0 +1,3261 @@
+/* Palette lifted from report_template.html so the two surfaces feel like
+   one product. */
+:root {
+  --bg: #0f172a;
+  --panel: #111c32;
+  --panel-2: #18243f;
+  --border: #233559;
+  --text: #e5eaf2;
+  --muted: #8ea0bf;
+  --accent: #60a5fa;
+  --sev-high: #ef4444;
+  --sev-medium: #f59e0b;
+  --sev-low: #10b981;
+  --sev-unknown: #94a3b8;
+  --tp: #10b981;
+  --fp: #f87171;
+  --partial: #f59e0b;
+  --unsure: #a78bfa;
+  --skip: #ec4899;
+  --fn: #6366f1;
+  /* Bright cyan reserved exclusively for "the cluster cell I'm
+     currently labelling". Not used by any verdict state so it
+     reads cleanly over every cell-* tint. */
+  --current-cell: #22d3ee;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  /* ``--vh-scale`` is set by viewport-zoom.js to ``1 / zoom`` so the
+     body inflates in CSS px to compensate for the visual scale-down;
+     painted height ends up exactly 100vh. Defaults to 1 when the
+     zoom script isn't loaded (e.g. standalone unit tests / older
+     browsers) so behaviour is unchanged. */
+  height: calc(100vh * var(--vh-scale, 1));
+  overflow: hidden;
+}
+body {
+  display: grid;
+  grid-template-columns: 320px 1fr 380px;
+  /* Header row is ``auto`` so the title + progress pills + actions
+     can wrap onto a second line on narrow viewports without clipping
+     under ``body { overflow: hidden }``. The footer keeps its fixed
+     32px; the centre row eats the rest. */
+  grid-template-rows: auto 1fr 32px;
+  grid-template-areas:
+    "header header header"
+    "sidebar center detail"
+    "footer footer footer";
+}
+
+/* Responsive shrinks: the workbench is a 3-pane desktop layout, but
+   the side panels need to give ground when the viewport narrows so
+   the centre CSV viewer stays usable. We tighten the sidebar +
+   detail at two breakpoints, then collapse them entirely on tablet-
+   sized screens. The body grid is the only place these widths are
+   declared; everything inside flows with the resulting column. */
+@media (max-width: 1400px) {
+  body { grid-template-columns: 300px 1fr 340px; }
+  header { gap: 10px 16px; padding: 6px 16px; }
+  header h1 { font-size: 14px; }
+  header .actions { font-size: 12px; gap: 8px; }
+  header .actions a { padding: 5px 10px; }
+}
+@media (max-width: 1200px) {
+  body { grid-template-columns: 280px 1fr 300px; }
+  header { gap: 8px 14px; padding: 6px 14px; }
+  header .progress { font-size: 11.5px; }
+  header .progress .pill { padding: 2px 8px; }
+  header .actions { font-size: 11.5px; gap: 6px; }
+  header .actions a { padding: 4px 9px; border-radius: 5px; }
+  /* On the export dropdown shrink the select/anchor too so the
+     control fits next to the other links instead of stretching. */
+  header .actions .export-single select { font-size: 11px; }
+  header .actions .export-single a { font-size: 11px; }
+}
+@media (max-width: 1024px) {
+  body { grid-template-columns: 260px 1fr 280px; }
+  header h1 { font-size: 13px; }
+  header .meta { font-size: 11px; }
+}
+@media (max-width: 900px) {
+  /* Tablet / narrow window: stack the three panes vertically. The
+     sidebar (queue + filters) and the detail (metadata + verdict)
+     drop below the centre CSV viewer so neither chokes the grid. */
+  html, body { height: auto; overflow: auto; }
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh * var(--vh-scale, 1));
+  }
+  header { padding: 8px 12px; gap: 8px 12px; }
+  header .title { flex: 1 1 100%; }
+  header .progress { flex: 1 1 100%; order: 3; }
+  header .actions { flex: 0 1 auto; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: calc(50vh * var(--vh-scale, 1)); }
+  .detail { border-left: none; border-top: 1px solid var(--border); }
+  .center { min-height: calc(50vh * var(--vh-scale, 1)); }
+}
+@media (max-width: 600px) {
+  /* Phone-ish: drop the in-header docs/export anchors to a smaller,
+     wrappable grid so the row doesn't visually dominate the page. */
+  header { padding: 6px 10px; }
+  header .actions { width: 100%; justify-content: flex-start; }
+  header .actions a { padding: 3px 8px; font-size: 11px; }
+  header .progress .pill { font-size: 11px; padding: 2px 7px; }
+  footer { font-size: 10px; }
+}
+kbd {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Keyboard-focus rings: only visible to keyboard users (:focus-visible
+   skips mouse interactions). Mirrors the report-template treatment so
+   the workbench and the standalone report look like one product. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* When a label submission is in flight we mark <body> with .saving so
+   keypresses (1-5 / Enter) and click handlers visually communicate
+   the in-flight state. Pointer-events stay live so the user can still
+   navigate; only inputs that would race the save are softened. */
+body.saving #verdict-buttons button { opacity: 0.6; cursor: progress; }
+body.saving { cursor: progress; }
+
+/* -------- header -------- */
+/* The header is a flex row that wraps deterministically into TWO
+   logical rows on desktop:
+     row 1: [ title block (grows) ]                 [ actions ]
+     row 2: [ progress pills, span full width ]
+   The pills are forced to row 2 with ``flex: 1 1 100%; order: 99``
+   so they never share a row with the actions and never push the
+   actions off-screen on narrow viewports. */
+header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  row-gap: 4px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0f172a, #0b1120);
+  /* min-width:0 ensures flex children can shrink past intrinsic
+     size when the viewport narrows; without it the long export
+     anchor / progress pill row force horizontal overflow. */
+  min-width: 0;
+}
+header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
+header .meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+header .title {
+  display: flex;
+  flex-direction: column;
+  /* Title block grows and pushes actions to the right edge of
+     row 1; min-width:0 lets the inner ellipsis truncation work. */
+  flex: 1 1 220px;
+  min-width: 0;
+}
+header .title h1, header .title .meta {
+  /* Truncate the run id / annotator metadata gracefully when the
+     header gets squeezed instead of forcing the row to overflow. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+header .progress {
+  /* Always claims its own row by taking 100% basis with order:99,
+     so the title + actions row stays clean even when 8+ pills are
+     present. The pills themselves wrap inside the row as needed. */
+  flex: 1 1 100%;
+  order: 99;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+  min-width: 0;
+}
+header .progress .pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  white-space: nowrap;
+}
+header .progress .pill strong { color: var(--text); margin-right: 3px; font-weight: 600; }
+header .actions {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Stays on row 1 next to the title; never grows. */
+  flex: 0 0 auto;
+}
+header .actions a {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+}
+/* Header-bar buttons styled to match the anchors next to them. The
+   "Generate all corrections" batch trigger uses this class. */
+header .actions .hdr-btn {
+  font: inherit;
+  color: inherit;
+  padding: 4px 10px;
+  border: 1px solid rgba(34, 197, 94, 0.55);
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.10);
+  cursor: pointer;
+}
+header .actions .hdr-btn:hover {
+  background: rgba(34, 197, 94, 0.20);
+}
+/* Per-error-type export dropdown + download anchor live inside an
+   inline-flex group so they look like a single control even though
+   the <select> and the <a> are separate DOM nodes. */
+header .actions .export-single {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  overflow: hidden;
+}
+header .actions .export-single select {
+  border: 0;
+  border-right: 1px solid var(--border);
+  padding: 4px 8px;
+  background: transparent;
+  font: inherit;
+  color: var(--text);
+  max-width: 14em;
+}
+header .actions .export-single a {
+  border: 0;
+  border-radius: 0;
+  padding: 6px 10px;
+  background: transparent;
+}
+header .actions .export-single a[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* -------- sidebar -------- */
+.sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.filters {
+  padding: 8px 10px;
+  /* Stack filters vertically so each multi-select dropdown gets the
+     full 320 px sidebar width. Splitting Status + Column status into
+     a 50/50 grid was cramped enough that long-ish facet labels wrap
+     and the trigger buttons truncate. With a single column, each row
+     has a clear label/control pair and consistent spacing. */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.filters label,
+.filters .filter-cell {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Two-column row: short fixed-width label on the left, the multi-
+     filter trigger eating the remaining width on the right. The
+     label keeps its muted micro-text styling. */
+  gap: 6px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.filters .filter-cell > span:first-child {
+  flex: 0 0 100px;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 10px;
+  /* Wrap long labels gracefully (e.g. "Column status") without
+     pushing the trigger button off-screen. */
+  word-break: break-word;
+}
+.filters .filter-cell .multi-filter { flex: 1 1 auto; min-width: 0; }
+.filters .filter-cell-wide { /* no-op now that all filters are full-width */ }
+/* Source filter cell can hold an extra ``xlsx-actions`` span (browse /
+   open-folder buttons for xlsx-backed runs). Allow that span to wrap
+   onto its own line below the trigger so it doesn't crowd the
+   multi-filter button on a 320 px sidebar. */
+.filters #filter-source-xlsx {
+  flex: 0 0 100%;
+  margin-left: 110px; /* aligns under the multi-filter, past the label gutter */
+}
+/* Inline help marker next to a filter label (e.g. "Column status").
+   Subtle by default; brightens on hover to invite reading the title
+   tooltip, which carries the explanation. */
+.filters .filter-cell .info {
+  display: inline-block;
+  margin-left: 3px;
+  cursor: help;
+  font-size: 10px;
+  opacity: 0.7;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.filters .filter-cell .info:hover { opacity: 1; color: var(--accent); }
+
+/* Narrow sidebar: at the 1200 / 1024 / 900 breakpoints above, the
+   horizontal "label | trigger" filter row gets cramped (the trigger
+   button compresses below the source filename ellipsis size). Drop
+   back to a label-above-trigger stack so each control gets the full
+   sidebar width. The label keeps its mini-caps treatment but
+   left-aligns once it isn't sharing the row with the trigger. */
+@media (max-width: 1200px) {
+  .filters { padding: 6px 8px; gap: 5px; }
+  .filters .filter-cell {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .filters .filter-cell > span:first-child {
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: 9.5px;
+  }
+  .filters #filter-source-xlsx { margin-left: 0; }
+  .multi-filter-btn { padding: 3px 6px; font-size: 11.5px; }
+}
+.filters select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+}
+
+/* Multi-select checkbox dropdown widget. Used in the label sidebar so
+   the operator can filter the queue by multiple sources / statuses /
+   error types simultaneously. */
+.multi-filter { position: relative; }
+.multi-filter-btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.multi-filter-btn .caret { color: var(--muted); font-size: 10px; }
+.multi-filter-btn .multi-filter-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-filter-pop {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 100%;
+  width: 280px;
+  /* Match the body's viewport-unit compensation (see html, body rule
+     above) so the popover doesn't clip on zoomed-down layouts. */
+  max-width: calc((100vw - 32px) * var(--vw-scale, 1));
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  z-index: 50;
+  max-height: 320px;
+  /* Two-row flex layout: a non-scrolling actions header on top and a
+     scrollable single-column options body below. The body scrolls in
+     both directions so long pills (full filenames,
+     ``inter_table_inconsistency``) remain reachable; the user can
+     also drag the bottom-right corner to grow the popover. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  resize: both;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+/* The HTML ``hidden`` attribute defaults to ``display: none``, but
+   our explicit ``display: flex`` above wins over it. Restore the
+   intended hide-by-default behaviour so popovers stay closed until
+   the user clicks the trigger. */
+.multi-filter-pop[hidden] { display: none; }
+.multi-filter-actions {
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+  flex: 0 0 auto;
+}
+.multi-filter-actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.multi-filter-actions button:hover { color: var(--text); }
+.multi-filter-options {
+  padding: 6px;
+  /* Single column layout: each option pill occupies its own row.
+     ``align-items: flex-start`` lets each pill keep its natural
+     content width so long values overflow horizontally instead of
+     wrapping or truncating, with the body's ``overflow: auto``
+     producing both scrollbars on demand. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+/* Each option is a clickable pill. Selected pills get an accent
+   border + tinted fill; unselected pills are subtle and blend in
+   with the popover background. Shared by every filter list (Source,
+   Status, Column status, Error type) so the four sidebar facets all
+   look like the same widget. */
+.multi-filter-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  /* No max-width: pills size to their content so long labels extend
+     past the popover's visible width and trigger horizontal scroll
+     rather than wrapping/truncating. */
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.4;
+}
+.multi-filter-opt:hover { border-color: var(--accent); }
+.multi-filter-opt.selected {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.multi-filter-opt.selected::before {
+  content: "✓";
+  color: var(--accent);
+  font-size: 10px;
+  margin-right: 2px;
+}
+.multi-filter-opt .opt-label {
+  /* Stay on one line so the pill width tracks the full label; the
+     options body provides horizontal scroll when needed. */
+  white-space: nowrap;
+}
+/* Column-status filter pills share the same font, size, padding and
+   selected styling as every other filter list. The ``col-status-*``
+   classes added by label.js are kept on the DOM (so future tweaks
+   could reintroduce per-state cues) but currently render no extra
+   styling to keep the four sidebar lists visually unified. */
+/* Source / Error type filter pills keep the same column-stack +
+   horizontal-scroll behaviour as the other filters; long labels
+   (full filenames, ``inter_table_inconsistency``) overflow rather
+   than truncate. */
+.multi-filter-group {
+  align-self: stretch;
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+.multi-filter-group:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 2px;
+}
+.queue { flex: 1; overflow-y: auto; }
+.queue .group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 11.5px;
+  position: sticky;
+  z-index: 1;
+}
+.queue .group-header.wb {
+  top: 0;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 10.5px;
+}
+.queue .group-header.src {
+  top: 22px;
+  color: var(--muted);
+}
+.queue .wb-body .group-header.src { padding-left: 22px; }
+/* Duplicate-group sub-header inside a CSV: nests one level deeper than
+   ``.src`` and uses an amber accent to match the ``.dup-group`` row
+   tint in the context table. */
+.queue .group-header.dup {
+  padding-left: 28px;
+  color: rgb(180, 110, 0);
+  background: rgba(245,158,11,0.06);
+  border-left: 2px solid rgba(245,158,11,0.55);
+}
+.queue .wb-body .group-header.dup { padding-left: 40px; }
+.queue .src-body .dup-body .row { padding-left: 44px; }
+.queue .wb-body .src-body .dup-body .row { padding-left: 52px; }
+.queue .group-header:hover { background: var(--panel-2); }
+.queue .group-header .caret {
+  width: 12px;
+  font-size: 9px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.queue .group-header .label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.queue .group-header .count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+}
+.queue .src-body .row { padding-left: 28px; }
+.queue .wb-body .src-body .row { padding-left: 36px; }
+.queue .row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.queue .row:hover { background: var(--panel-2); }
+.queue .row.active { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 9px; }
+.queue .row .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--sev-unknown); margin-top: 5px;
+}
+.queue .row .dot.tp { background: var(--tp); }
+.queue .row .dot.fp { background: var(--fp); }
+.queue .row .dot.partial { background: var(--partial); }
+.queue .row .dot.unsure { background: var(--unsure); }
+.queue .row .dot.skip { background: var(--skip); }
+.queue .row .dot.fn { background: var(--fn); }
+.queue .row .main .src { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue .row .main .cols { font-weight: 600; font-size: 12.5px; }
+.queue .row .main .types { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* -------- CSV viewer -------- */
+.center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.csv-head {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  /* Don't let a long workbook/sheet path force the centre pane to
+     overflow horizontally; the spans inside truncate via ellipsis. */
+  min-width: 0;
+}
+.csv-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.csv-head #csv-source { flex: 1 1 auto; }
+.csv-head #csv-pos { flex: 0 0 auto; max-width: 50%; text-align: right; }
+
+/* Exclusion bar: lives just under the CSV viewer header. Lets the
+   operator mark whole CSVs / rows / columns as too messy to label.
+   Records persist to <run_dir>/exclusions.jsonl. */
+.exclude-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 12px;
+}
+.exclude-bar .exclude-btn,
+.exclude-bar .exclude-input button,
+.exclude-active button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.exclude-bar .exclude-btn:hover,
+.exclude-bar .exclude-input button:hover,
+.exclude-active button:hover { border-color: var(--accent); }
+.exclude-bar .exclude-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.exclude-bar .exclude-input label {
+  color: var(--muted);
+  font-size: 11px;
+}
+.exclude-bar input[type="text"] {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+  width: 160px;
+}
+.exclude-active {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+  align-items: center;
+}
+.exclude-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+.exclude-chip button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 0 2px;
+}
+.exclude-chip button:hover { color: var(--text); }
+
+/* Visual marks for excluded slices. Strikethrough + dim so the
+   operator can still see content but knows it's been opted out. */
+.csv-viewer tr.row-excluded td,
+.csv-viewer td.col-excluded {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(248, 113, 113, 0.06) 0,
+    rgba(248, 113, 113, 0.06) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.csv-viewer th.col-excluded {
+  background: rgba(248, 113, 113, 0.18);
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.csv-viewer.csv-excluded {
+  position: relative;
+}
+.csv-viewer.csv-excluded::before {
+  content: "this CSV is excluded";
+  position: sticky;
+  top: 0;
+  display: block;
+  text-align: center;
+  background: rgba(248, 113, 113, 0.25);
+  border-bottom: 1px solid rgba(248, 113, 113, 0.6);
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text);
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.csv-viewer.csv-excluded table { opacity: 0.55; }
+
+/* Queue rows whose cluster lives on an excluded slice get the same
+   strikethrough treatment so the operator can spot them while
+   scrolling without hiding them entirely. */
+.queue .row.cluster-excluded .main { text-decoration: line-through; opacity: 0.6; }
+.muted { color: var(--muted); }
+.csv-viewer { flex: 1; overflow: auto; min-height: 0; }
+.csv-viewer table {
+  border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  width: max-content;
+  min-width: 100%;
+}
+.csv-viewer th, .csv-viewer td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+.csv-viewer th {
+  position: sticky; top: 0;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-weight: 600;
+  /* z-index has to stay ABOVE ``.csv-viewer tr.target td.flagged``
+     (z-index: 2) so the currently-selected flagged cells don't
+     punch through the sticky column-header row when the operator
+     scrolls the target row up behind it. If a cluster flags 5+
+     columns, the cell-level z-index would cover the entire thead
+     row and the operator would see "the column header disappear".
+     We pick 5 to leave headroom for any future single-cell overlay
+     state without re-tripping this bug. The sticky-left row-index
+     column (.csv-viewer tr.row-idx td:first-child) is lifted to
+     z-index: 3 for the same reason - sticky-column cells must beat
+     ``.target td.flagged`` (2) but stay below the sticky thead so
+     the top-left corner cell (which is sticky in both axes) wins. */
+  z-index: 5;
+}
+.csv-viewer th.flagged, .csv-viewer td.flagged {
+  outline: 2px solid var(--sev-medium);
+  outline-offset: -2px;
+}
+/* Per-cell verdict states overlaid on the CSV viewer. The same cells
+   may also have ``.flagged`` from the active cluster - the verdict
+   colour wins because it's painted on top. */
+.csv-viewer td.cell-tp     { background: rgba(16, 185, 129, 0.22); }
+.csv-viewer td.cell-partial{ background: rgba(245, 158, 11, 0.22); }
+.csv-viewer td.cell-fp     { background: rgba(248, 113, 113, 0.18); }
+.csv-viewer td.cell-fn     { background: rgba(167, 139, 250, 0.30); outline: 2px dashed var(--unsure); outline-offset: -2px; }
+.csv-viewer td.cell-unsure { background: rgba(167, 139, 250, 0.15); }
+.csv-viewer td.cell-shadowed::after {
+  content: "\26A0";        /* warning sign for FN superseded by a TP cluster */
+  margin-left: 4px;
+  color: var(--sev-medium);
+  font-size: 10px;
+}
+.csv-viewer td.clickable { cursor: pointer; }
+.csv-viewer td.clickable:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* -------- whitespace markers --------
+   Surface leading/trailing spaces, multi-space runs, tabs, NBSP,
+   embedded newlines, and zero-width characters in CSV cells. Without
+   these markers a value like "Smith  " (trailing spaces) is visually
+   indistinguishable from "Smith", which makes typo / inconsistency
+   labelling guesswork. Rules match ``renderCsvCellHtml`` in label.js.
+
+   Regular spaces are PRESERVED inside the marker span so copy/paste
+   still produces the literal whitespace - the background colour is
+   the only visual change. Tabs / NBSP / line breaks / zero-width
+   characters are REPLACED with a glyph (->, NBSP, arrow, dot)
+   because they have no visible width otherwise. */
+.csv-viewer .ws-marker {
+  /* Make every marker visually distinct against any cell-state
+     background (cell-fp / cell-tp / etc.) without looking too loud. */
+  border-radius: 2px;
+  /* Preserve in-cell layout: don't let the marker push neighbouring
+     text around. */
+  padding: 0 1px;
+}
+/* Edge spaces are almost always a defect - paint them red. */
+.csv-viewer .ws-edge {
+  background: rgba(248, 113, 113, 0.35);
+  box-shadow: inset 0 -1px 0 rgba(248, 113, 113, 0.9);
+}
+/* Internal multi-space runs are suspicious but sometimes intentional
+   - paint them orange so the operator notices but isn't alarmed. */
+.csv-viewer .ws-internal {
+  background: rgba(245, 158, 11, 0.30);
+  box-shadow: inset 0 -1px 0 rgba(245, 158, 11, 0.9);
+}
+/* Tab / NBSP - visible glyph on a yellow chip. ``inline-block`` so
+   the glyph keeps a minimum width even when the column is squeezed
+   by ``text-overflow: ellipsis``. */
+.csv-viewer .ws-special {
+  display: inline-block;
+  min-width: 0.7em;
+  text-align: center;
+  background: rgba(245, 158, 11, 0.30);
+  color: #f59e0b;
+  font-weight: 700;
+}
+/* Line breaks inside a single-line cell are always a defect. */
+.csv-viewer .ws-newline {
+  display: inline-block;
+  min-width: 0.7em;
+  text-align: center;
+  background: rgba(167, 139, 250, 0.35);
+  color: #a78bfa;
+  font-weight: 700;
+}
+/* Zero-width characters - render as a thin red dot since the cell
+   would otherwise show nothing where they sit. */
+.csv-viewer .ws-zw {
+  display: inline-block;
+  min-width: 0.5em;
+  text-align: center;
+  background: rgba(248, 113, 113, 0.40);
+  color: #f87171;
+  font-weight: 700;
+}
+/* A small accent on cells that contain ANY whitespace anomaly so
+   the operator can spot them while scrolling, even when the markers
+   themselves are eaten by ``text-overflow: ellipsis`` on a narrow
+   column. The dotted underline is subtler than a full outline so it
+   doesn't compete with the .flagged / .cell-* state outlines. */
+.csv-viewer td.has-ws {
+  text-decoration: underline dotted rgba(248, 113, 113, 0.7);
+  text-underline-offset: 3px;
+}
+
+/* Floating popover for cell-level FN labelling and quick-correct on
+   already-labelled cluster cells. Positioned by JS relative to the
+   clicked cell. */
+.cell-popover {
+  position: fixed;
+  z-index: 50;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: 12px 14px;
+  min-width: 280px;
+  max-width: 360px;
+  font-size: 12.5px;
+}
+.cell-popover h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+.cell-popover .meta { margin-bottom: 8px; color: var(--muted); font-family: ui-monospace, monospace; font-size: 11px; }
+.cell-popover .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cell-popover .actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.cell-popover .actions button.tp      { border-color: var(--tp);      color: var(--tp); }
+.cell-popover .actions button.fp      { border-color: var(--fp);      color: var(--fp); }
+.cell-popover .actions button.partial { border-color: var(--partial); color: var(--partial); }
+.cell-popover .actions button.fn      { border-color: var(--unsure);  color: var(--unsure); }
+.cell-popover .actions button.unsure  { border-color: var(--unsure);  color: var(--unsure); }
+.cell-popover .actions button.close   { color: var(--muted); margin-left: auto; }
+.cell-popover textarea, .cell-popover input[type="text"] {
+  width: 100%; box-sizing: border-box;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 4px 8px; font-size: 12px; font-family: inherit;
+  margin-top: 4px;
+}
+.cell-popover .hint { color: var(--muted); font-size: 11px; margin-top: 6px; }
+.cell-popover .hint.warn { color: var(--sev-medium); }
+
+/* Sibling-tables strip in the CSV header. Lets the operator jump
+   between CSVs of the same workbook without round-tripping through the
+   sidebar - critical for inter-table errors. */
+.sibling-tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 4px;
+  font-size: 11.5px;
+}
+.sibling-tables .label { color: var(--muted); margin-right: 4px; }
+.sibling-tables button {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.sibling-tables button.active { color: var(--accent); border-color: var(--accent); }
+.sibling-tables button:hover { color: var(--text); }
+
+/* Original-xlsx access buttons in the CSV header. Mirrors the
+   sibling-tables pill style so the header strip stays visually
+   coherent. Hidden when the run config doesn't expose an xlsx
+   source dir. */
+.xlsx-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 11.5px;
+  vertical-align: middle;
+}
+.xlsx-actions .xlsx-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.xlsx-actions .xlsx-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.csv-viewer tr.row-idx td:first-child {
+  color: var(--muted);
+  background: var(--panel);
+  position: sticky;
+  left: 0;
+  /* Mirror the sticky-thead z-index bump (5). Without an explicit
+     z-index, the sticky # column renders at the default 0 and gets
+     covered by ``.csv-viewer tr.target td.flagged`` (z-index: 2)
+     whenever the operator scrolls right past the flagged cell -
+     the # column would slide BEHIND the flagged cell on its way
+     to ``left: 0``, briefly making the row index invisible.
+     z-index: 3 keeps it above the target-cell ring but still below
+     the sticky thead (5) so the top-left corner stacking is sane. */
+  z-index: 3;
+}
+.csv-viewer tr.target { background: rgba(96,165,250,0.08); }
+/* Currently-viewed cluster cell: a thick cyan ring + outer glow.
+   The cyan (--current-cell) is reserved for this state and clashes
+   with NO verdict tint, so the cell's underlying cell-fp / cell-tp
+   / cell-unsure / cell-partial background stays visible (the
+   operator can still see "this is a labelled FP that I'm now
+   viewing"). The double box-shadow gives a soft halo so the cell
+   stands out even from across the viewport.
+   ``z-index: 2`` lifts the cell above sticky neighbours so the ring
+   doesn't get clipped by adjacent <td>s on horizontal scroll. */
+.csv-viewer tr.target td.flagged {
+  outline: 3px solid var(--current-cell);
+  outline-offset: -3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(34, 211, 238, 0.55),
+    0 0 0 2px rgba(34, 211, 238, 0.35);
+  position: relative;
+  z-index: 2;
+}
+/* Duplicate-group siblings of a row_duplication cluster: a softer
+   amber band so the operator can see the whole group at a glance
+   while still keeping the primary `target` row visually dominant. */
+.csv-viewer tr.dup-group { background: rgba(245,158,11,0.10); }
+.csv-viewer tr.dup-group.target { background: rgba(245,158,11,0.18); }
+
+/* -------- detail pane -------- */
+.detail {
+  grid-area: detail;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+.detail h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  /* Cluster ids like ``EDD47DD1.CSV__R00040-C000`` and long workbook
+     filenames must wrap on any character so they fit the narrow
+     detail pane instead of forcing a horizontal scrollbar. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.detail .block { margin-bottom: 14px; }
+.detail .cols {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  /* Long source / column lists shouldn't push past the pane edge. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.detail .sev-chip {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--panel-2); color: var(--muted); margin-right: 6px;
+}
+.detail .det-row {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--panel-2);
+}
+.detail .det-row .et { font-weight: 600; font-size: 12px; }
+.detail .det-row .obs { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); margin: 4px 0; word-break: break-word; }
+.detail .det-row .fix { font-size: 11.5px; color: var(--text); }
+/* Multi-column "Violated relation:" hint — surfaces the relation
+   kind + columns it spans for fd_violation / row_calculation_
+   inconsistency / string_calculation_inconsistency detections so
+   the labeller can identify the rule at a glance. Sits between the
+   error-type header and the Observed/Explanation rows. */
+.detail .det-row .rel-violated {
+  font-size: 11.5px;
+  color: var(--text);
+  margin: 4px 0;
+  padding: 4px 6px;
+  background: var(--panel);
+  border-left: 3px solid var(--accent, #4a90e2);
+  border-radius: 3px;
+}
+.detail .det-row .rel-violated code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--panel-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.detail .placeholder { color: var(--muted); padding: 20px; text-align: center; }
+
+/* Original / Fix block. Stacked rows per column ("Original: ..." then
+   "Fix: ...") so the panel stays readable when the LLM's fix is a
+   free-form instruction rather than a literal corrected value. */
+.detail .before-after .ba-row {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.detail .before-after .ba-row:last-child { margin-bottom: 0; }
+.detail .before-after .ba-col {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.detail .before-after .ba-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+.detail .before-after .ba-line:first-child { margin-top: 0; }
+.detail .before-after .ba-tag {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  flex: none;
+  min-width: 56px;
+}
+.detail .before-after .ba-tag-fix { color: var(--accent); }
+.detail .before-after .ba-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-word;
+  white-space: pre-wrap;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+/* Fix value inherits the full styling of ``.ba-val`` above so the
+   Original and Fix rows render in the same monospace family and
+   size, keeping the before/after pair visually aligned. (Earlier
+   the fix had ``font-family: inherit`` because some LLM fixes are
+   free-form sentences; mono renders sentences fine and the
+   consistency is more important.) */
+.detail .before-after .ba-val.ba-empty { color: var(--muted); }
+
+/* -------- Web verification block --------
+   Shown only when ``bundle.web_verification`` is non-null (the
+   verifier has run on this cluster). Compact: a verdict chip + the
+   canonical alternative + clickable evidence URLs + an Accept button
+   that pre-populates the Corrected-value field. */
+.detail .block.web-verify h2 {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.detail .block.web-verify .verdict-chip {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 1px solid var(--muted); color: var(--muted);
+  background: var(--panel-2);
+}
+.detail .block.web-verify .canon {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+}
+.detail .block.web-verify .reasoning {
+  font-size: 12px; color: var(--text); margin: 6px 0 8px;
+}
+/* Unreliable-reasoning warning: shown when the verifier downgraded
+   the agent's verdict to ambiguous because none of its claimed
+   evidence URLs were corroborated by real Web Search citations. The
+   reasoning text typically reads as confident ("Multiple authoritative
+   sources confirm...") despite being fabricated, so we wrap it in a
+   prominent amber banner instead of rendering it inline. */
+.detail .block.web-verify .reasoning.reasoning-warn {
+  border: 1px solid var(--sev-medium, #b45);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0 8px;
+  background: color-mix(in srgb, var(--sev-medium, #b45) 8%, transparent);
+}
+.detail .block.web-verify .reasoning.reasoning-warn .reasoning-warn-banner {
+  font-size: 11.5px; font-weight: 600;
+  color: var(--sev-medium, #b45);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.detail .block.web-verify .reasoning.reasoning-warn .reasoning-text {
+  font-size: 12px; color: var(--muted); font-style: italic;
+}
+.detail .block.web-verify ul.evidence {
+  list-style: none; padding: 0; margin: 6px 0; font-size: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.detail .block.web-verify ul.evidence a {
+  color: var(--accent); word-break: break-all;
+}
+.detail .block.web-verify ul.evidence .ev-quote {
+  font-style: italic; color: var(--muted); font-size: 11.5px;
+  margin-top: 2px;
+}
+.detail .block.web-verify .web-meta {
+  font-size: 11px; margin-top: 6px;
+}
+.detail .block.web-verify .web-meta code {
+  font-size: 10.5px; padding: 0 4px; border-radius: 3px;
+  background: var(--panel-2); color: var(--text);
+}
+.detail .block.web-verify button.web-accept {
+  font: inherit; font-size: 12px; font-weight: 600;
+  padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--panel-2);
+  color: var(--accent);
+}
+.detail .block.web-verify button.web-accept:hover {
+  background: var(--accent); color: #0b1120;
+}
+
+/* On-demand "Verify on web" CTA shown when no verification exists. */
+.detail .block.web-verify-cta {
+  border: 1px dashed var(--border);
+  background: transparent;
+}
+.detail .block.web-verify button.web-verify-btn {
+  font: inherit; font-size: 12px; font-weight: 600;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--panel-2);
+  color: var(--accent);
+}
+.detail .block.web-verify button.web-verify-btn:hover {
+  background: var(--accent); color: #0b1120;
+}
+.detail .block.web-verify button.web-verify-btn:disabled,
+.detail .block.web-verify button.web-verify-btn.loading {
+  cursor: progress; opacity: 0.7;
+  border-color: var(--muted); color: var(--muted);
+}
+
+.buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+.buttons button {
+  font: inherit; font-size: 12px; font-weight: 600;
+  padding: 8px 0; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+}
+.buttons button:hover { filter: brightness(1.15); }
+.buttons button.tp { border-color: var(--tp); color: var(--tp); }
+.buttons button.fp { border-color: var(--fp); color: var(--fp); }
+.buttons button.partial { border-color: var(--partial); color: var(--partial); }
+.buttons button.unsure { border-color: var(--unsure); color: var(--unsure); }
+.buttons button.skip { border-color: var(--skip); color: var(--skip); }
+.buttons button.fn { border-color: var(--fn); color: var(--fn); }
+.buttons button.active { background: currentColor; }
+.buttons button.active.tp, .buttons button.active.fp,
+.buttons button.active.partial, .buttons button.active.unsure,
+.buttons button.active.skip, .buttons button.active.fn { color: #0b1120; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; }
+.field > span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field textarea {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font: inherit;
+}
+.field textarea { min-height: 60px; resize: vertical; }
+
+/* Corrected-value input prefilled from the LLM's ``synthesis.canonical_fix``
+   (or longest detection.suggested_fix). Visually distinct from a
+   value the operator typed: dashed-accent border, italicised text,
+   slightly muted background. As soon as the operator focuses or
+   types into the field, JS flips ``data-from-llm`` to ``"0"`` and
+   the styling reverts to the regular look. */
+.field input[data-from-llm="1"] {
+  border-style: dashed;
+  border-color: var(--accent);
+  font-style: italic;
+  color: var(--accent);
+  background: rgba(76, 134, 232, 0.08);
+}
+.field .llm-suggestion-hint {
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+/* -------- footer -------- */
+footer.shortcuts {
+  grid-area: footer;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  gap: 16px;
+  padding: 0 16px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+  overflow-x: auto;
+}
+
+.toast {
+  position: fixed;
+  right: 16px; bottom: 46px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  z-index: 10;
+}
+
+/* -------- labelling-effort projection panel --------
+   Surfaces the per-(source, column) Good-Turing / Chao1 estimates
+   from `good_turing/per_arm_estimates.json`. Lives below the CSV
+   viewer in the centre column so it shares the operator's main
+   focus area without competing with the queue / detail panes. */
+.effort-panel {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  padding: 8px 12px 12px 12px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
+}
+.effort-panel > summary {
+  cursor: pointer;
+  padding: 4px 0;
+  font-weight: 600;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.effort-panel > summary .effort-summary-text { flex: 0 0 auto; }
+.effort-panel > summary #effort-headline {
+  font-weight: 400;
+  font-size: 11px;
+}
+.effort-panel .effort-help {
+  margin: 6px 0 8px 0;
+  font-size: 11px;
+}
+.effort-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.effort-table th, .effort-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.effort-table th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+  font-weight: 600;
+}
+.effort-table td.src, .effort-table td.col {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.effort-table tbody tr {
+  cursor: pointer;
+}
+.effort-table tbody tr:hover {
+  background: var(--panel-2);
+}
+.effort-table tr.effort-high td:nth-child(5) {
+  color: #ff8a80;
+  font-weight: 600;
+}
+.effort-table tr.effort-mid td:nth-child(5) {
+  color: #ffd180;
+}
+.effort-table tr.effort-low td:nth-child(5) {
+  color: var(--muted);
+}
+
+/* Column-audit action cell in the effort-table.
+   Hosts the "Verify column" button + the inline status badge that
+   shows in-flight job state OR cached audit counts. The button stays
+   compact so the audit column doesn't dominate the table; the badge
+   only takes space when there's something to show. */
+.effort-table td.audit-cell {
+  white-space: nowrap;
+}
+.audit-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.audit-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(96, 165, 250, 0.08);
+  color: var(--text);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.audit-btn:hover {
+  background: rgba(96, 165, 250, 0.20);
+  border-color: var(--accent);
+}
+.audit-btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+/* Hot variant for budget-capped rows: the primary inspection target
+   per the user's "we want to do this for all the column that says
+   budget-capped" directive. */
+.audit-controls.audit-capped .audit-btn {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: rgb(252, 165, 165);
+  font-weight: 600;
+}
+.audit-controls.audit-capped .audit-btn:hover {
+  background: rgba(220, 38, 38, 0.28);
+}
+.audit-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.audit-badge.running {
+  background: rgba(96, 165, 250, 0.18);
+  color: rgb(147, 197, 253);
+  /* Subtle pulse so a long-running job is visually alive. */
+  animation: audit-pulse 1.4s ease-in-out infinite;
+}
+@keyframes audit-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1.0; }
+}
+.audit-badge.failed {
+  background: rgba(220, 38, 38, 0.20);
+  color: rgb(252, 165, 165);
+}
+.audit-badge.fn-found {
+  background: rgba(220, 38, 38, 0.28);
+  color: rgb(254, 202, 202);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+.audit-badge.no-fn {
+  background: rgba(34, 197, 94, 0.16);
+  color: rgb(167, 243, 208);
+}
+
+/* Per-row mini progress bar - replaces the "Verify column" button +
+   badge while the audit job for that row is running. Layout:
+     [text - flex auto]  [bar - 60px]  [✕ - 14px]
+   Tight enough to fit the same column width as the idle-state
+   button so the table doesn't reflow on transition. */
+.audit-mini-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  /* Match the .audit-btn footprint so the column doesn't reflow
+     when we swap views. */
+  padding: 1px 4px;
+}
+.audit-mini-progress[hidden] { display: none; }
+.audit-mini-text {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: rgb(147, 197, 253);
+  min-width: 50px;
+}
+.audit-mini-bar {
+  display: inline-block;
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.audit-mini-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(
+    90deg,
+    rgba(96, 165, 250, 0.65) 0%,
+    rgba(248, 113, 113, 0.85) 100%
+  );
+  transition: width 0.4s ease-out;
+}
+.audit-mini-fill.indeterminate {
+  width: 100% !important;
+  background-image: linear-gradient(
+    90deg,
+    rgba(96, 165, 250, 0.55) 0%,
+    rgba(96, 165, 250, 0.10) 50%,
+    rgba(96, 165, 250, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: audit-indeterminate 1.4s linear infinite;
+}
+.audit-mini-cancel {
+  font-size: 10px;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.audit-mini-cancel:hover {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: rgb(252, 165, 165);
+}
+/* Hot-tint for budget-capped rows mirrors the .audit-btn variant so
+   the row keeps its "important to audit" colour cue while running. */
+.audit-controls.audit-capped .audit-mini-text {
+  color: rgb(252, 165, 165);
+}
+.audit-controls.audit-capped .audit-mini-bar {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+/* Bulk audit button in the effort-panel header. Right-aligned via
+   margin-left:auto so it sits to the right of the headline text. */
+.effort-panel .audit-all-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: rgba(220, 38, 38, 0.14);
+  color: rgb(252, 165, 165);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.effort-panel .audit-all-btn:hover {
+  background: rgba(220, 38, 38, 0.26);
+}
+.effort-panel .audit-all-btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Live progress bar for an in-flight column-audit job. Sits between
+   the effort headline and the bulk button in the effort summary so
+   the operator sees real-time progress without expanding the panel.
+   Kept compact (single row, 11px text) to avoid cluttering the
+   summary; the bar itself is fixed-width so it doesn't reflow when
+   the headline text changes.
+
+   Layout:  [text - left]  [bar - 140px]  [cancel - optional] */
+.audit-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 0;
+}
+.audit-progress[hidden] {
+  display: none;
+}
+.audit-progress-text {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+.audit-progress-bar {
+  display: inline-block;
+  flex: 0 0 140px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.audit-progress-fill {
+  display: block;
+  height: 100%;
+  /* Warm gradient: matches the budget-capped / FN-find palette so
+     the operator's eye associates "audit running" with the same
+     attention colour as the trigger buttons. */
+  background: linear-gradient(
+    90deg,
+    rgba(96, 165, 250, 0.55) 0%,
+    rgba(248, 113, 113, 0.75) 100%
+  );
+  width: 0%;
+  transition: width 0.4s ease-out;
+}
+.audit-progress-fill.indeterminate {
+  /* Animated stripes for the brief window before total_columns is
+     known. CSS-only so no JS animation tick is needed. */
+  width: 100% !important;
+  background-image: linear-gradient(
+    90deg,
+    rgba(96, 165, 250, 0.45) 0%,
+    rgba(96, 165, 250, 0.10) 50%,
+    rgba(96, 165, 250, 0.45) 100%
+  );
+  background-size: 200% 100%;
+  animation: audit-indeterminate 1.4s linear infinite;
+}
+@keyframes audit-indeterminate {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -200% 0; }
+}
+.audit-progress-cancel {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--muted);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.audit-progress-cancel:hover {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: rgb(252, 165, 165);
+}
+.audit-progress-cancel[hidden] {
+  display: none;
+}
+
+/* -------- per-cell audit verdict markers in the CSV viewer --------
+   Painted by ``paintAuditMarkerOnCell`` whenever an audited (source,
+   column, row) appears in the loaded CSV slice. The marker is a
+   small one-character glyph absolutely positioned in the top-right
+   of the cell, colour-coded by verdict. The same .audit-verdict-*
+   classes also tint the cell's left border so the operator can scan
+   a column at a glance without focusing on the corner glyph.
+
+   Painted ON TOP of the existing .cell-tp / .cell-fp / .cell-fn
+   verdict colours: the audit signal is independent of the LLM-
+   labelling state, so we can't reuse those backgrounds. We use a
+   left-side border accent instead so neither layer occludes the
+   other. */
+.csv-viewer td.audit-marked {
+  position: relative;
+  /* Reserve a tiny inset for the corner marker so very long values
+     don't run under it. The marker itself is positioned absolutely
+     so this padding only shows on cells that actually have one. */
+  padding-right: 18px;
+}
+.csv-viewer td.audit-verdict-confirmed_error {
+  border-left: 3px solid rgba(248, 113, 113, 0.85);
+}
+.csv-viewer td.audit-verdict-false_positive {
+  border-left: 3px solid rgba(34, 197, 94, 0.65);
+}
+.csv-viewer td.audit-verdict-ambiguous {
+  border-left: 3px solid rgba(255, 209, 128, 0.65);
+}
+.csv-viewer td.audit-verdict-errored {
+  border-left: 3px dashed rgba(160, 160, 160, 0.65);
+}
+/* FN-candidate cells (confirmed_error verdict on a cell the LLM did
+   NOT flag) get an additional pulse so the operator's eye is drawn
+   to them - this is the headline use case of the column-audit
+   feature. */
+.csv-viewer td.audit-fn-candidate-cell {
+  background: rgba(220, 38, 38, 0.10) !important;
+  border-left-width: 4px;
+  border-left-color: rgba(248, 113, 113, 1.0);
+  animation: audit-fn-pulse 2.4s ease-in-out infinite;
+}
+@keyframes audit-fn-pulse {
+  0%, 100% { box-shadow: inset 2px 0 0 rgba(248, 113, 113, 0.0); }
+  50%      { box-shadow: inset 4px 0 0 rgba(248, 113, 113, 0.55); }
+}
+
+/* The corner glyph itself. Rendered as a ``::after`` pseudo-element
+   on the <td> so it never appears in ``td.textContent`` or in
+   clipboard copies of the cell. The actual character is class-driven
+   so we don't have to thread a data-attribute through paintAuditMarkerOnCell.
+
+   Single character (E / check / ? / warn / !) placed in the top-right
+   of the cell. Colour comes from the verdict class on the parent <td>. */
+.csv-viewer td.audit-marked::after {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 2px;
+  pointer-events: none;
+  user-select: none;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0;
+}
+.csv-viewer td.audit-verdict-confirmed_error::after {
+  content: "E";
+  background: rgba(220, 38, 38, 0.85);
+  color: #fff;
+}
+.csv-viewer td.audit-verdict-false_positive::after {
+  content: "\2713";
+  background: rgba(34, 197, 94, 0.75);
+  color: #052e1a;
+}
+.csv-viewer td.audit-verdict-ambiguous::after {
+  content: "?";
+  background: rgba(255, 209, 128, 0.85);
+  color: #3d2900;
+}
+.csv-viewer td.audit-verdict-errored::after {
+  content: "\26A0";
+  background: rgba(160, 160, 160, 0.55);
+  color: #fff;
+}
+/* FN-candidate cells (confirmed_error verdict on a cell the LLM did
+   NOT flag) get a brighter "!" punctuation so the operator's eye is
+   drawn to them - this is the headline use case of the column-audit
+   feature. The double-class selector raises specificity above the
+   plain ``audit-verdict-confirmed_error::after`` rule above. */
+.csv-viewer td.audit-fn-candidate-cell.audit-verdict-confirmed_error::after {
+  content: "!";
+  background: rgba(220, 38, 38, 1.0);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.30);
+  color: #fff;
+}
+
+/* Audited column header: small magnifying-glass glyph rendered via
+   ::after so we don't have to touch the renderer. Hover reveals a
+   tooltip with the FN-candidate count (set by the JS painter). */
+.csv-viewer th.audited {
+  position: relative;
+}
+.csv-viewer th.audited::after {
+  content: "\1F50D";  /* magnifying glass */
+  margin-left: 4px;
+  font-size: 9px;
+  color: var(--accent);
+  vertical-align: super;
+}
+
+/* -------- audit findings inside the cell popover --------
+   One block at the top of the popover, only painted when the
+   (source, column, row) appears in columnAuditCellLookup.
+   Layout matches .gt-stats so the two coexist visually. */
+.cell-popover .audit-pop-block {
+  margin: 8px 0 4px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-2);
+  font-size: 12px;
+}
+.cell-popover .audit-pop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.cell-popover .audit-pop-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cell-popover .audit-pop-row {
+  margin-top: 4px;
+  font-size: 11.5px;
+}
+.cell-popover .audit-pop-row .canon {
+  font-style: italic;
+  color: rgb(167, 243, 208);
+}
+.cell-popover .audit-fn-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.40);
+  color: rgb(254, 226, 226);
+  letter-spacing: 0.04em;
+}
+.cell-popover .audit-llm-flag-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(96, 165, 250, 0.18);
+  color: rgb(147, 197, 253);
+}
+.cell-popover .audit-pop-reasoning {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cell-popover .audit-pop-reasoning summary {
+  cursor: pointer;
+  user-select: none;
+}
+.cell-popover .audit-pop-reasoning .reasoning-text {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow: auto;
+  border-left: 2px solid var(--border);
+  padding-left: 6px;
+}
+.cell-popover .audit-pop-evidence {
+  margin: 6px 0 0 0;
+  padding: 0 0 0 16px;
+  font-size: 11px;
+}
+.cell-popover .audit-pop-evidence li {
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.cell-popover .audit-pop-evidence a {
+  color: var(--accent);
+}
+.cell-popover .audit-pop-evidence .audit-evidence-quote {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-style: italic;
+  margin-top: 1px;
+  border-left: 2px solid var(--border);
+  padding-left: 6px;
+}
+
+/* -------- column-audit panel --------
+   One collapsible block per audited (source, column). Lives below the
+   effort panel and is hidden until at least one audit has been run.
+   Each block shows a counts headline in its summary so the operator
+   can scan multiple pairs without expanding any. Expanding lazy-loads
+   the actual records into a table.
+
+   The whole panel is a <details> (in label.html) so the operator
+   can fully collapse it when many columns have been audited - the
+   summary stays a one-line, clickable headline that doubles as the
+   expand/collapse toggle. When expanded, the body is scrollable
+   inside a tight max-height so it never pushes the cluster detail
+   pane out of view. */
+.column-audit-panel {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 12px;
+}
+/* When closed the panel is just the one-line summary - no body
+   takes vertical space. */
+.column-audit-panel:not([open]) > .column-audit-head {
+  border-bottom: none;
+}
+.column-audit-head {
+  /* Sticky so the headline + collapse caret stay visible while the
+     body scrolls. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.column-audit-head::-webkit-details-marker { display: none; }
+.column-audit-head .title::before {
+  /* Small caret driven by the parent <details>'s open state so the
+     toggle indicator is consistent with .effort-panel. */
+  content: "\25B8";  /* ▸ */
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--muted);
+  transition: transform 0.15s ease-out;
+}
+.column-audit-panel[open] > .column-audit-head .title::before {
+  transform: rotate(90deg);
+}
+.column-audit-head #column-audit-headline {
+  font-weight: 400;
+  font-size: 11px;
+}
+/* Scrollable body. Fixed max-height keeps the panel from eating
+   the cluster-detail pane; tight inner padding keeps blocks dense
+   so 30+ audited columns are still browsable. */
+.column-audit-body {
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 12px 10px 12px;
+}
+.column-audit-block {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: var(--panel-2);
+}
+.column-audit-block.has-fn {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(220, 38, 38, 0.06);
+}
+.column-audit-block > summary {
+  cursor: pointer;
+  padding: 6px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.column-audit-block .audit-source {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.column-audit-block .audit-column {
+  font-weight: 600;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.column-audit-block summary .pill {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.column-audit-block summary .pill.pill-fn {
+  background: rgba(220, 38, 38, 0.28);
+  color: rgb(254, 202, 202);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+.column-audit-block summary .pill.pill-ok {
+  background: rgba(34, 197, 94, 0.16);
+  color: rgb(167, 243, 208);
+}
+.column-audit-block summary .pill.pill-total {
+  background: rgba(96, 165, 250, 0.14);
+  color: rgb(147, 197, 253);
+}
+.column-audit-block summary .pill.pill-conf {
+  background: rgba(220, 38, 38, 0.16);
+  color: rgb(252, 165, 165);
+}
+.column-audit-block summary .pill.pill-fp {
+  background: rgba(34, 197, 94, 0.10);
+  color: rgb(167, 243, 208);
+}
+.column-audit-block summary .pill.pill-amb {
+  background: rgba(255, 209, 128, 0.16);
+  color: #ffd180;
+}
+.column-audit-block summary .pill.pill-err {
+  background: rgba(255, 209, 128, 0.10);
+  color: var(--muted);
+}
+.column-audit-detail {
+  padding: 4px 10px 10px 10px;
+}
+.audit-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.audit-detail-table th, .audit-detail-table td {
+  text-align: left;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.audit-detail-table th {
+  font-weight: 600;
+  color: var(--muted);
+}
+.audit-detail-table td.value {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audit-detail-table td.canonical {
+  font-style: italic;
+  color: rgb(167, 243, 208);
+}
+.audit-detail-table td.evidence {
+  max-width: 320px;
+  overflow-wrap: anywhere;
+}
+.audit-detail-table td.rows .row-link {
+  cursor: pointer;
+  color: var(--accent);
+}
+.audit-detail-table td.rows .row-link:hover {
+  text-decoration: underline;
+}
+.audit-detail-table td.llm-flag {
+  font-weight: 600;
+  color: var(--muted);
+}
+.audit-verdict-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.audit-verdict-pill.verdict-confirmed_error {
+  background: rgba(220, 38, 38, 0.20);
+  color: rgb(252, 165, 165);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+.audit-verdict-pill.verdict-false_positive {
+  background: rgba(34, 197, 94, 0.14);
+  color: rgb(167, 243, 208);
+}
+.audit-verdict-pill.verdict-ambiguous {
+  background: rgba(255, 209, 128, 0.14);
+  color: #ffd180;
+}
+.audit-verdict-pill.verdict-errored {
+  background: rgba(120, 120, 120, 0.18);
+  color: var(--muted);
+}
+.fn-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(220, 38, 38, 0.40);
+  color: rgb(254, 226, 226);
+  letter-spacing: 0.04em;
+}
+.audit-detail-table tr.audit-fn-candidate {
+  background: rgba(220, 38, 38, 0.08);
+}
+.audit-detail-table tr.audit-fn-candidate:hover {
+  background: rgba(220, 38, 38, 0.14);
+}
+.audit-row-actions {
+  white-space: nowrap;
+}
+.audit-row-actions button {
+  font-size: 10px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.audit-row-actions button:hover {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: var(--accent);
+}
+.audit-row-actions button.audit-fn-btn {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(220, 38, 38, 0.14);
+  color: rgb(252, 165, 165);
+  font-weight: 600;
+}
+.audit-row-actions button.audit-fn-btn:hover {
+  background: rgba(220, 38, 38, 0.28);
+}
+
+/* Compact responsive tweaks for narrow viewports: hide the evidence
+   column and shrink padding so the table doesn't horizontally
+   scroll on the inner panel. */
+@media (max-width: 1200px) {
+  .audit-detail-table td.evidence,
+  .audit-detail-table th:nth-child(6) {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .audit-detail-table td.canonical,
+  .audit-detail-table th:nth-child(5) {
+    display: none;
+  }
+  .effort-panel .audit-all-btn {
+    /* Drop to its own row at narrow widths so it doesn't squeeze
+       the headline's pills. */
+    flex: 1 1 100%;
+    margin-left: 0;
+    text-align: center;
+  }
+  .audit-progress {
+    /* Drop to its own row at narrow widths so the progress text
+       doesn't get clipped behind the bulk button. */
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+  .audit-progress-text {
+    max-width: none;
+    flex: 1 1 auto;
+  }
+}
+
+/* Per-(column, error_type) labelling-effort chips painted next to
+   the cell value inside annotated cells in the CSV viewer. Sources
+   the Chao1 projected-missed estimate from /labeling-effort. Kept
+   small + muted so they don't compete with the cell value or the
+   verdict-coloured background. */
+.cell-effort-chips {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  pointer-events: auto;
+}
+.cell-effort {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text);
+  white-space: nowrap;
+}
+.cell-effort-active {
+  background: rgba(255, 209, 128, 0.18);
+  border-color: rgba(255, 209, 128, 0.40);
+  color: #ffd180;
+}
+.cell-effort-insufficient {
+  background: rgba(176, 190, 197, 0.15);
+  border-color: rgba(176, 190, 197, 0.30);
+  color: #b0bec5;
+}
+.cell-effort-saturated, .cell-effort-exhausted {
+  background: rgba(165, 214, 167, 0.12);
+  border-color: rgba(165, 214, 167, 0.28);
+  color: #a5d6a7;
+}
+
+/* Good-Turing / Chao1 stats block inside the cell-click popover.
+   Surfaces the per-(column, error_type) labelling-effort estimates
+   the moment the operator selects any cell, so they have the
+   coverage context inline before deciding TP/FP/FN. */
+.cell-popover .gt-stats {
+  margin: 8px 0 4px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-2);
+  font-size: 11px;
+}
+.cell-popover .gt-stats .gt-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.cell-popover .gt-stats .gt-head .muted { font-size: 10px; }
+.cell-popover .gt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.cell-popover .gt-table th, .cell-popover .gt-table td {
+  padding: 2px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.cell-popover .gt-table th {
+  font-weight: 600;
+  color: var(--muted);
+}
+.cell-popover .gt-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cell-popover .gt-table td.et {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cell-popover .gt-table tr.gt-status-active td.status { color: #ffd180; }
+.cell-popover .gt-table tr.gt-status-saturated td.status,
+.cell-popover .gt-table tr.gt-status-exhausted td.status { color: #a5d6a7; }
+.cell-popover .gt-table tr.gt-status-insufficient td.status { color: #b0bec5; }
+.cell-popover .gt-table tr.gt-status-not_applicable td.status { color: var(--muted); }
+.cell-popover .gt-more { margin-top: 4px; font-size: 10px; }
+.cell-popover .gt-table tr.gt-row-match {
+  background: rgba(255, 209, 128, 0.10);
+}
+.cell-popover .gt-table tr.gt-row-match td.et { font-weight: 600; }
+
+/* "Inferred" markers for clusters whose row only appears in another
+   detection's affected_rows list. Surfaced so the operator can label
+   every cell the LLM claimed (FN-aware benchmark building) while
+   visually distinguishing them from primary detections. */
+.queue .row.row-inferred .dot { opacity: 0.55; }
+.queue .row.row-inferred .main { opacity: 0.85; }
+.inferred-badge {
+  display: inline-block;
+  padding: 0 5px;
+  margin-left: 6px;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sev-chip.inferred-chip {
+  color: var(--muted);
+  border-color: var(--muted);
+  font-style: italic;
+}
+/* Cross-sheet (multi-table) queue items. Tint slightly so the eye
+   can distinguish them from in-table cluster rows even before
+   reading the badge. */
+.queue .row.row-mt {
+  background: linear-gradient(
+    to right,
+    rgba(167, 139, 250, 0.06),
+    transparent 70%
+  );
+}
+/* Duplicate-group badge in the queue list: signals that the cluster
+   spans multiple rows (row_duplication). Amber to match the
+   ``.dup-group`` row tint in the context table. */
+.dup-badge {
+  display: inline-block;
+  padding: 0 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(245,158,11,0.7);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 700;
+  color: rgb(180, 110, 0);
+  background: rgba(245,158,11,0.12);
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+/* Near-duplicate variant: cooler colour so reviewers can prioritise
+   the high-confidence ``duplicate`` groups while still seeing the
+   "needs human review" near-duplicate ones. */
+.verdict-badge.near-dup-badge {
+  display: inline-block;
+  padding: 0 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(99,102,241,0.7);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 700;
+  color: rgb(67, 56, 202);
+  background: rgba(99,102,241,0.12);
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+.group-header.dup.near-dup {
+  background: rgba(99,102,241,0.08);
+  border-left: 3px solid rgba(99,102,241,0.7);
+}
+/* Discovery-strategy chips on the bucket header. Subtle pill list
+   so a reviewer can see at a glance which clusterer surfaced the
+   group (key_collision = high precision, blocking / minhash_lsh /
+   embedding = recall-first). */
+.strategy-chips {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.strategy-chip {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--muted);
+  background: rgba(127,127,127,0.10);
+  border: 1px solid rgba(127,127,127,0.25);
+}
+.strategy-chip.strategy-key_collision {
+  color: rgb(21, 128, 61);
+  background: rgba(34,197,94,0.10);
+  border-color: rgba(34,197,94,0.4);
+}
+/* Source-header warning: row_duplication candidate budget exhausted
+   for this CSV. Red because the operator should rerun with a larger
+   cap before trusting the labels for this source. */
+.budget-warn-badge {
+  display: inline-block;
+  padding: 0 6px;
+  margin-left: 8px;
+  border: 1px solid rgba(220,38,38,0.7);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 700;
+  color: rgb(185, 28, 28);
+  background: rgba(220,38,38,0.10);
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+  cursor: help;
+}
+
+/* ===================================================================
+ * Column-cluster (inconsistency) queue items + center highlight +
+ * right-pane detail + Add-cluster modal.
+ * =================================================================== */
+
+/* Queue row tint: subtle teal stripe so inconsistency clusters stand
+   out from cell-level clusters even before reading the badge. */
+.queue .row.row-cc {
+  background: linear-gradient(
+    to right,
+    rgba(20, 184, 166, 0.07),
+    transparent 70%
+  );
+}
+
+/* Badge in the queue row line: "col ×N" where N is the cluster's
+   distinct-value count. Teal to match the row tint. */
+.cc-badge {
+  display: inline-block;
+  padding: 0 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(13, 148, 136, 0.7);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 13px;
+  font-weight: 700;
+  color: rgb(15, 118, 110);
+  background: rgba(20, 184, 166, 0.12);
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+/* CSV grid highlight for cluster value matches. Two strongly
+   contrasting palettes so the operator can spot canonical vs
+   non-canonical at a glance:
+     * Non-canonical (other variants in the same cluster) -> amber.
+       Reads as "warning, needs canonicalisation".
+     * Canonical (the value the cluster should converge to) ->
+       saturated green. Reads as "this is the right value".
+   The two hues are far apart on the wheel so they remain easy to
+   tell apart on light and dark backgrounds alike. */
+.csv-viewer td.clickable.col-cluster-match {
+  background: rgba(245, 158, 11, 0.22) !important;
+  outline: 1px dashed rgba(217, 119, 6, 0.65);
+  outline-offset: -1px;
+  color: rgb(254, 240, 138);
+}
+.csv-viewer td.clickable.col-cluster-canonical {
+  background: rgba(34, 197, 94, 0.32) !important;
+  outline: 2px solid rgba(34, 197, 94, 0.85);
+  outline-offset: -2px;
+  font-weight: 700;
+  color: rgb(220, 252, 231);
+}
+/* Flash animation when navigating from the value list to a CSV row.
+   Pulses with a bright cyan ring so the eye locks onto the target
+   regardless of which cluster-highlight tint sits underneath. */
+.csv-viewer td.clickable.cc-flash {
+  animation: cc-flash 0.8s ease-out;
+}
+@keyframes cc-flash {
+  0% { box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.75); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+}
+
+/* Right-pane value list for a column-cluster item. Mirrors the
+   grid palette: non-canonical chips are amber-tinted, canonical
+   is saturated green, so the right pane and the CSV grid read as
+   the same visual language. */
+.detail .cc-value-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.detail .cc-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px dashed rgba(217, 119, 6, 0.55);
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.detail .cc-value:hover {
+  background: rgba(245, 158, 11, 0.28);
+}
+.detail .cc-value.canonical {
+  background: rgba(34, 197, 94, 0.28);
+  border: 1px solid rgba(34, 197, 94, 0.85);
+  font-weight: 700;
+}
+.detail .cc-value.canonical:hover {
+  background: rgba(34, 197, 94, 0.40);
+}
+.detail .cc-canon-badge {
+  color: rgb(187, 247, 208);
+  font-size: 11px;
+}
+.detail .cc-value-count {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* Canonical-confirm radio block (per-cluster detail pane). */
+.detail .cc-canon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail .cc-canon-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.detail .cc-canon-opt:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.detail .cc-canon-opt input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Per-value corrections block (LLM-assisted, edit + save). Sits just
+   below the canonical-radio block in the column-cluster detail pane.
+   When saved corrections are present the canonical-radio block is
+   hidden in favour of this richer per-value mapping. */
+.detail .cc-corrections .cc-corrections-running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 6px 0;
+}
+.detail .cc-corrections .cc-corrections-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(34, 211, 238, 0.25);
+  border-top-color: rgba(34, 211, 238, 0.95);
+  border-radius: 50%;
+  animation: cc-spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes cc-spin {
+  to { transform: rotate(360deg); }
+}
+.detail .cc-corrections .cc-corrections-error {
+  font-size: 12px;
+  color: rgb(252, 165, 165);
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+.detail .cc-corrections .cc-corrections-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.detail .cc-corrections .cc-corrections-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 6px;
+}
+.detail .cc-corrections .cc-corrections-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 4px 6px;
+  vertical-align: top;
+}
+.detail .cc-corrections .cc-correction-action {
+  width: 100%;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+.detail .cc-corrections .cc-correction-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.detail .cc-corrections .cc-correction-item-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.detail .cc-corrections .cc-correction-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: inherit;
+}
+.detail .cc-corrections .cc-correction-item:disabled {
+  opacity: 0.5;
+}
+.detail .cc-corrections .cc-correction-item-remove {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+  font-size: 13px;
+  border-radius: 3px;
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+.detail .cc-corrections .cc-correction-item-remove:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.2);
+}
+.detail .cc-corrections .cc-correction-item-remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.detail .cc-corrections .cc-correction-add {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  border: 1px dashed rgba(34, 211, 238, 0.45);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.detail .cc-corrections .cc-correction-add:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.12);
+}
+.detail .cc-corrections .cc-correction-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.detail .cc-corrections .cc-correction-invalid {
+  border-color: rgba(220, 38, 38, 0.7);
+}
+.detail .cc-corrections .cc-correction-items.cc-correction-invalid {
+  border: 1px solid rgba(220, 38, 38, 0.7);
+  border-radius: 3px;
+  padding: 2px;
+}
+.detail .cc-corrections .cc-corrections-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.detail .cc-corrections .cc-corrections-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.08);
+  cursor: pointer;
+  color: inherit;
+}
+.detail .cc-corrections .cc-corrections-actions button:hover {
+  background: rgba(34, 211, 238, 0.18);
+}
+.detail .cc-corrections .cc-corrections-actions .cc-corrections-save {
+  border-color: rgba(34, 197, 94, 0.65);
+  background: rgba(34, 197, 94, 0.14);
+}
+.detail .cc-corrections .cc-corrections-actions .cc-corrections-save:hover {
+  background: rgba(34, 197, 94, 0.28);
+}
+.detail .cc-corrections .cc-corrections-actions .cc-corrections-clear {
+  border-color: rgba(220, 38, 38, 0.5);
+  background: rgba(220, 38, 38, 0.10);
+}
+.detail .cc-corrections .cc-corrections-actions .cc-corrections-clear:hover {
+  background: rgba(220, 38, 38, 0.22);
+}
+
+/* Batch correction-job modal: progress bar + per-cluster collapsible
+   result blocks. Lives inside the cc-modal frame so the surrounding
+   modal chrome (head / body / close button) is reused. */
+#batch-corrections-modal .cc-batch-panel {
+  width: min(880px, 94vw);
+  max-height: calc(88vh * var(--vh-scale, 1));
+}
+#batch-corrections-modal .batch-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+#batch-corrections-modal .batch-progress-text {
+  font-size: 12px;
+  color: var(--muted);
+}
+#batch-corrections-modal .batch-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+#batch-corrections-modal .batch-progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 211, 238, 0.55) 0%,
+    rgba(34, 197, 94, 0.85) 100%
+  );
+  width: 0%;
+  transition: width 0.4s ease-out;
+}
+#batch-corrections-modal .batch-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(60vh * var(--vh-scale, 1));
+  overflow: auto;
+}
+#batch-corrections-modal .batch-result-block {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+#batch-corrections-modal .batch-result-block summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+#batch-corrections-modal .cc-corrections-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+#batch-corrections-modal .cc-corrections-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 6px;
+}
+#batch-corrections-modal .cc-corrections-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+/* Trivial-typo tagger modal: preview list of (source, row, column,
+   value) about to receive the literal token TRIVIAL in their note,
+   plus a summary card of counts. Reuses the cc-modal frame. */
+#identify-trivial-modal .cc-batch-panel {
+  width: min(880px, 94vw);
+  max-height: calc(88vh * var(--vh-scale, 1));
+}
+#identify-trivial-modal .trivial-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+#identify-trivial-modal .trivial-stat {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#identify-trivial-modal .trivial-stat strong {
+  font-size: 18px;
+  line-height: 1.1;
+}
+#identify-trivial-modal .trivial-stat .trivial-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#identify-trivial-modal .trivial-stat.to-tag strong { color: rgb(34, 197, 94); }
+#identify-trivial-modal .trivial-stat.skip strong { color: var(--muted); }
+#identify-trivial-modal .trivial-preview {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: calc(48vh * var(--vh-scale, 1));
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.02);
+}
+#identify-trivial-modal .trivial-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#identify-trivial-modal .trivial-preview-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  position: sticky;
+  top: 0;
+}
+#identify-trivial-modal .trivial-preview-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 4px 6px;
+  vertical-align: top;
+}
+#identify-trivial-modal .trivial-preview-table tr.is-already-tagged td {
+  color: var(--muted);
+  font-style: italic;
+}
+#identify-trivial-modal .trivial-preview-table .ws-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre;
+  /* Repaint visible whitespace in red, mirroring the .has-ws CSV
+     viewer rule so the operator can spot the anomaly at a glance. */
+  background: linear-gradient(
+    transparent 0%,
+    transparent 100%
+  );
+}
+#identify-trivial-modal .trivial-preview-table .ws-value .ws-marker {
+  background: rgba(239, 68, 68, 0.22);
+  border-bottom: 2px solid rgba(239, 68, 68, 0.85);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+#identify-trivial-modal .trivial-preview-table .target-pill {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+}
+#identify-trivial-modal .trivial-preview-table .status-pill {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+#identify-trivial-modal .trivial-preview-table .status-pill.tp { background: rgba(34, 197, 94, 0.18); color: rgb(22, 163, 74); }
+#identify-trivial-modal .trivial-preview-table .status-pill.fn { background: rgba(99, 102, 241, 0.18); color: rgb(79, 70, 229); }
+#identify-trivial-modal .trivial-preview-table .status-pill.partial { background: rgba(234, 179, 8, 0.18); color: rgb(202, 138, 4); }
+#identify-trivial-modal .trivial-preview-table .status-pill.unsure { background: rgba(156, 163, 175, 0.18); color: var(--muted); }
+#identify-trivial-modal .trivial-preview-table .rowdup-group {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+#identify-trivial-modal .trivial-preview-table .rowdup-group strong {
+  color: inherit;
+  font-weight: 700;
+}
+#identify-trivial-modal .trivial-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+#identify-trivial-modal .trivial-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+#identify-trivial-modal .trivial-actions .left {
+  margin-right: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+#identify-trivial-modal .trivial-actions button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}
+#identify-trivial-modal .trivial-actions button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+#identify-trivial-modal .trivial-actions .primary {
+  background: rgb(220, 38, 38);
+  border-color: rgb(185, 28, 28);
+  color: white;
+  font-weight: 600;
+}
+#identify-trivial-modal .trivial-actions .primary:hover {
+  background: rgb(185, 28, 28);
+}
+#identify-trivial-modal .trivial-actions .primary[disabled] {
+  background: rgba(220, 38, 38, 0.30);
+  border-color: rgba(220, 38, 38, 0.30);
+  cursor: not-allowed;
+}
+#identify-trivial-modal .trivial-error {
+  border: 1px solid rgb(220, 38, 38);
+  color: rgb(220, 38, 38);
+  background: rgba(220, 38, 38, 0.10);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+#identify-trivial-modal .trivial-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--muted);
+  border-radius: 50%;
+  animation: trivial-spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes trivial-spin { to { transform: rotate(360deg); } }
+
+/* Two-tab strip inside the trivial-tagger modal. The strip lives
+   between the head and the body; clicking a tab toggles
+   ``[data-active-tab]`` on the body, which drives ``.is-active``
+   visibility on each pane. */
+#identify-trivial-modal .trivial-tab-strip {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 10px;
+}
+#identify-trivial-modal .trivial-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+}
+#identify-trivial-modal .trivial-tab:hover {
+  color: inherit;
+}
+#identify-trivial-modal .trivial-tab.is-active {
+  color: inherit;
+  border-bottom-color: rgb(220, 38, 38);
+  font-weight: 600;
+}
+/* Show only the pane matching the body's active-tab attribute. Each
+   pane carries data-trivial-pane="<key>"; the body has
+   data-active-tab="<key>". Matching pair = visible. */
+#identify-trivial-modal .cc-modal-body[data-active-tab="whitespace"]
+  .trivial-pane[data-trivial-pane="whitespace"],
+#identify-trivial-modal .cc-modal-body[data-active-tab="phone"]
+  .trivial-pane[data-trivial-pane="phone"] {
+  display: block;
+}
+#identify-trivial-modal .trivial-pane { display: none; }
+/* Per-column card for the phone-format pane: shows the source CSV,
+   detected column name, the column-majority template, and counts of
+   pending cell corrections + clusters to skip. */
+#identify-trivial-modal .phone-col-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+#identify-trivial-modal .phone-col-card .phone-col-head {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+#identify-trivial-modal .phone-col-card .phone-col-head code {
+  font-size: 12px;
+}
+#identify-trivial-modal .phone-col-card .phone-col-head .muted {
+  color: var(--muted);
+  font-size: 11px;
+}
+#identify-trivial-modal .phone-col-card .phone-col-head .pill {
+  display: inline-block;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(34, 197, 94, 0.18);
+  color: rgb(22, 163, 74);
+  border: 1px solid rgba(34, 197, 94, 0.30);
+}
+#identify-trivial-modal .phone-corr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+#identify-trivial-modal .phone-corr-table th {
+  text-align: left;
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 3px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+#identify-trivial-modal .phone-corr-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: top;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+#identify-trivial-modal .phone-corr-table tr.is-already-tagged td {
+  color: var(--muted);
+  font-style: italic;
+}
+#identify-trivial-modal .phone-corr-table .arrow {
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+/* +Add inconsistency cluster button in the CSV head. */
+.add-cluster-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid rgba(13, 148, 136, 0.7);
+  border-radius: 4px;
+  background: rgba(20, 184, 166, 0.10);
+  color: rgb(15, 118, 110);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-cluster-btn:hover {
+  background: rgba(20, 184, 166, 0.22);
+}
+
+/* Add-cluster modal. */
+.cc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cc-modal[hidden] { display: none !important; }
+.cc-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+.cc-modal-panel {
+  position: relative;
+  background: var(--bg, #fff);
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: min(640px, 92vw);
+  max-height: calc(88vh * var(--vh-scale, 1));
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+.cc-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cc-modal-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.cc-modal-close {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 2px 6px;
+}
+.cc-modal-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+.cc-modal-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.cc-modal-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.cc-modal-row select,
+.cc-modal-row input[type="text"] {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: inherit;
+  color: inherit;
+  font-size: 12.5px;
+}
+.cc-modal-static { font-size: 12.5px; }
+.cc-modal-values {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.cc-modal-values .cc-modal-value {
+  display: grid;
+  grid-template-columns: 22px 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cc-modal-values .cc-modal-value:last-child { border-bottom: 0; }
+.cc-modal-values .cc-modal-value.selected {
+  background: rgba(20, 184, 166, 0.10);
+}
+.cc-modal-values .cc-modal-value.canonical {
+  background: rgba(34, 197, 94, 0.14);
+}
+.cc-modal-values .cc-modal-value-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-modal-values .cc-modal-value-count {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.cc-modal-summary {
+  font-size: 11.5px;
+}
+.cc-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.cc-modal-foot button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: inherit;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cc-modal-foot .cc-modal-submit {
+  background: rgba(20, 184, 166, 0.18);
+  border-color: rgba(13, 148, 136, 0.7);
+  color: rgb(15, 118, 110);
+  font-weight: 600;
+}
+.cc-modal-foot .cc-modal-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pre-export conflict modal: surfaces (source, column, value) triples
+   whose label verdicts disagree row-to-row before the operator
+   downloads the benchmark JSONL. Reuses the .cc-modal frame so the
+   look matches the other workflow modals. */
+.cc-modal-panel.export-conflict-panel {
+  width: min(880px, 94vw);
+}
+.export-conflict-summary {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.export-conflict-summary.danger {
+  color: #fde68a;
+}
+.export-conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(60vh * var(--vh-scale, 1));
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+}
+.export-conflict-group {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.08);
+}
+.export-conflict-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.export-conflict-head .source {
+  font-weight: 600;
+}
+.export-conflict-head .column {
+  color: var(--muted);
+}
+.export-conflict-head .value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+.export-conflict-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.export-conflict-cell {
+  display: grid;
+  grid-template-columns: 64px 90px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  font-size: 11.5px;
+}
+.export-conflict-cell + .export-conflict-cell {
+  border-top: 1px dashed var(--border);
+}
+.export-conflict-cell .row-label {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.export-conflict-cell .label-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: lowercase;
+}
+.export-conflict-cell .label-pill.label-error {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+.export-conflict-cell .label-pill.label-clean {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.export-conflict-cell .label-pill.label-ambiguous {
+  background: rgba(234, 179, 8, 0.16);
+  color: #fde68a;
+}
+.export-conflict-cell .corrected {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.export-conflict-cell .jump-btn {
+  background: rgba(20, 184, 166, 0.12);
+  border: 1px solid rgba(13, 148, 136, 0.55);
+  color: inherit;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.export-conflict-cell .jump-btn:hover {
+  background: rgba(20, 184, 166, 0.22);
+}
+.cc-modal-foot .cc-modal-export-anyway {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: rgba(202, 138, 4, 0.7);
+  color: rgb(234, 179, 8);
+  font-weight: 600;
+}

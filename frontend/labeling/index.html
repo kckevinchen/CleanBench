@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CleanBench annotation</title>
+  <link rel="stylesheet" href="./dashboard.css" />
+</head>
+<body>
+  <main>
+    <header><h1>CleanBench annotation</h1><p>Review local tables, record human decisions, and export a benchmark.</p></header>
+    <section aria-labelledby="import-title">
+      <h2 id="import-title">Import tables</h2>
+      <form id="import-form">
+        <label>Run name <input id="run-id" required pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,99}" placeholder="my-review" /></label>
+        <label>Source CSVs <input id="csvs" type="file" accept=".csv" multiple required /></label>
+        <label>Candidate JSONL (optional) <input id="candidates" type="file" accept=".jsonl,.json" /></label>
+        <p class="hint">Without a candidate file, every cell enters the review queue. Candidate fields: source, row (zero-based), column, and optional error_type, explanation, suggested_value.</p>
+        <button type="submit">Import and label</button>
+        <p id="message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section aria-labelledby="runs-title"><h2 id="runs-title">Annotation runs</h2><p id="workspace"></p><div id="runs" aria-live="polite">Loading…</div><button id="refresh" type="button">Refresh</button></section>
+    <footer><a href="/api/docs">Local API</a> · Labels and source files stay in your workspace.</footer>
+  </main>
+  <script type="module" src="./dashboard.js"></script>
+</body>
+</html>

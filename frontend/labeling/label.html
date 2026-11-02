@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Defense-in-depth: block inline-script regressions and third-party loads. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" />
+  <title>Data cleaning - labelling</title>
+  <!-- Auto-zoom the workbench so the 3-pane labelling layout stays
+       usable on low-resolution screens (1366x768 / 1280x720 laptops).
+       Loads synchronously BEFORE stylesheets so the first paint is
+       at the right scale (no FOUC). See viewport-zoom.js for the API. -->
+  <script src="./viewport-zoom.js"></script>
+  <link rel="stylesheet" href="./styles.css?v=2" />
+  <!-- Cross-sheet (multi-table) comparison panes share styles with the
+       legacy mt_label.html surface. Inlined here because the unified
+       label page needs both the CSV grid (for cluster items) and the
+       side-by-side panel layout (for multi-table findings). -->
+  <link rel="stylesheet" href="./mt_label.css?v=2" />
+  <!-- UI/UX refinement layer: loaded last so its rules win by source order.
+       Restyles existing markup only (no DOM/JS changes); drop this one line
+       to revert to the base look. -->
+  <link rel="stylesheet" href="./refresh.css?v=6" />
+  <link rel="stylesheet" href="./local.css" />
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1><a href="./" style="color:inherit;">Data-cleaning workbench</a> <span class="muted">· label</span></h1>
+      <div class="meta" id="run-meta"><span class="sk sk-meta" aria-label="loading run metadata"></span></div>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="actions">
+      <a href="./">← Runs</a>
+      <!-- Export controls grouped into one dropdown to declutter the
+           header. All ids are preserved so label.js wires hrefs / the
+           conflict-guard by id exactly as before; header_menu.js handles
+           open/close (outside-click + Esc). -->
+      <details class="export-menu" id="export-menu">
+        <summary class="export-menu-summary" title="Download benchmark / source exports">Export</summary>
+        <div class="export-menu-body" role="menu">
+          <a id="export-bundle-link" href="#" download class="export-primary" role="menuitem">
+            <span class="export-primary-row">Eval bundle <span class="export-primary-tag">recommended</span></span>
+            <span class="export-caption">Benchmark, ignored cells, and scoring contract</span>
+          </a>
+          <div class="export-divider"></div>
+          <div class="export-section-label">Individual exports</div>
+          <a id="export-link" href="#" download role="menuitem">Export benchmark</a>
+          <a id="export-by-type-link" href="#" download title="One JSONL per error_type, bundled as a ZIP" role="menuitem">Per-type benchmark</a>
+          <span class="export-single" title="Download just one error_type as JSONL">
+            <select id="export-single-type" aria-label="Select error type to export">
+              <option value="">(error type)</option>
+            </select>
+            <a id="export-single-link" href="#" download class="muted" aria-disabled="true">Download</a>
+          </span>
+          <a id="export-sources-link" href="#" download title="ZIP of source CSVs minus exclusions (whole-file, row, and column exclusions are stripped out)" role="menuitem">Export source CSVs</a>
+        </div>
+      </details>
+      <button id="batch-corrections-btn" class="hdr-btn" type="button"
+              title="Generate per-value corrections for every TP / unsure cluster in this run (LLM, K=3 self-consistency).">
+        Generate all corrections
+      </button>
+      <button id="identify-trivial-btn" class="hdr-btn" type="button"
+              title="Tag two classes of trivial-typo cells: whitespace-anomaly cells (existing labels get TRIVIAL appended to their note) and phone-format-inconsistency cells (cluster gets SKIP, cell gets FN+canonical with TRIVIAL phone_format note). Idempotent: rows already tagged are skipped.">
+        Tag Trivial
+      </button>
+      <a href="/api/docs" target="_blank" rel="noopener">API</a>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <!-- Free-text queue search (also focusable with the "/" key). Treated
+         as another filter in label.js, so the summary count, empty-state
+         and per-type counts all reflect it. -->
+    <div class="queue-search-wrap">
+      <input type="search" id="queue-search" class="queue-search"
+             placeholder="Search queue  ( / )" aria-label="Search the queue"
+             autocomplete="off" />
+    </div>
+    <div class="filters">
+      <div class="filter-cell filter-cell-wide">
+        <span>Source</span>
+        <div class="multi-filter" id="filter-source" data-empty-label="(all)"></div>
+        <span id="filter-source-xlsx" class="xlsx-actions" hidden></span>
+      </div>
+      <div class="filter-cell">
+        <span>Status</span>
+        <div class="multi-filter" id="filter-status" data-empty-label="(any)"></div>
+      </div>
+      <!-- Column-status filter narrows the queue to clusters whose
+           (source, column) cell is in a particular adaptive-loop arm
+           state (budget-capped, exploring, converged, too sparse).
+           Hidden for runs with no per-arm labelling-effort artifact;
+           the wrapper's [hidden] is toggled by refreshLabelingEffort. -->
+      <div class="filter-cell" id="filter-column-status-cell" hidden>
+        <span>Column status
+          <span class="muted info" title="Adaptive arm state for the cluster's (source, column). budget-capped = the detector hit k_max while still finding new defects, so the column likely needs further inspection.">&#9432;</span>
+        </span>
+        <div class="multi-filter" id="filter-column-status" data-empty-label="(any)"></div>
+      </div>
+      <div class="filter-cell filter-cell-wide">
+        <span>Error type</span>
+        <div class="multi-filter" id="filter-error-type" data-empty-label="(any)"></div>
+      </div>
+    </div>
+    <!-- Filtered-queue summary: item count + one-click clear-all when any
+         facet is active. Populated by updateQueueSummary() in label.js. -->
+    <div class="queue-summary" id="queue-summary"></div>
+    <div class="queue" id="queue">
+      <!-- Loading skeleton shown until label.js renders the queue (it
+           replaces #queue's contents on first render). Pure decoration. -->
+      <div class="queue-skeleton" aria-hidden="true">
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+        <div class="sk-row"><span class="sk sk-dot"></span><span class="sk-lines"><span class="sk sk-text l1"></span><span class="sk sk-text l2"></span></span></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="center" id="center">
+    <div class="csv-head" id="csv-head">
+      <span id="csv-source" class="muted">(no source)</span>
+      <span id="csv-pos" class="muted"></span>
+      <!-- Per-CSV "Add inconsistency cluster" button. Visible when a
+           CSV is loaded in the center pane. Clicking opens a modal
+           where the operator picks a column + 2+ values + canonical;
+           submitting POSTs a new ``StdCluster`` appended to the
+           column's existing ``column_clusters.jsonl`` record (or
+           creates the record if missing). -->
+      <button type="button"
+              id="add-cluster-btn"
+              class="add-cluster-btn"
+              title="Add an inconsistency cluster for a column in this CSV"
+              hidden>+ Add inconsistency cluster</button>
+    </div>
+    <!-- Exclusion bar: lets the operator mark this CSV (or specific
+         rows / columns within it) as too messy to label. Persists to
+         <run_dir>/exclusions.jsonl. Only the visual mark is applied
+         here - excluded items remain visible so they can be re-labelled
+         or undone via the active-list chips below the inputs. -->
+    <div class="exclude-bar" id="exclude-bar" hidden>
+      <button type="button" id="exclude-csv-btn" class="exclude-btn" title="Mark this entire CSV as excluded from labelling">✕ Exclude this CSV</button>
+      <span class="exclude-input">
+        <label for="exclude-rows-input">rows</label>
+        <input id="exclude-rows-input" type="text" placeholder="e.g. 5, 8-12, 20" autocomplete="off" />
+        <button type="button" id="exclude-rows-btn">Exclude</button>
+      </span>
+      <span class="exclude-input">
+        <label for="exclude-cols-input">columns</label>
+        <input id="exclude-cols-input" type="text" placeholder="e.g. age, name" autocomplete="off" />
+        <button type="button" id="exclude-cols-btn">Exclude</button>
+      </span>
+      <span class="exclude-active" id="exclude-active"></span>
+    </div>
+    <!-- Single-cell / multi-row / multi-column clusters: full CSV
+         viewer with the target row highlighted. ``hidden`` toggled by
+         label.js when the selected queue item switches between cluster
+         and multi-table. -->
+    <div class="csv-viewer" id="csv-viewer"></div>
+    <!-- Multi-table cross-sheet findings: side-by-side row panels
+         (one per linked sheet/row). Reuses the .mt-compare grid from
+         mt_label.css so canonical-column alignment + cell-disagreement
+         highlighting work without further markup. -->
+    <div class="mt-compare" id="mt-compare" hidden></div>
+    <!-- Per-(source, column) labelling-effort projection. Driven by the
+         per-arm Good-Turing artifact written by adaptive runs. Hidden
+         when the run has no per-arm estimates (single-pass / fixed-K).
+         Toggle with the disclosure caret in the header. -->
+    <details class="effort-panel" id="effort-panel" hidden>
+      <summary>
+        <span class="effort-summary-text">Labelling effort projection</span>
+        <span id="effort-headline" class="muted"></span>
+        <!-- Live progress for an in-flight column-audit job. Hidden
+             until the script writes column_verifications/_progress.json
+             (and the polling loop in label.js notices). Shows
+             "auditing N/M columns - <src>.<col> - X/Y values" plus
+             a striped progress bar driven by the cumulative ratio. -->
+        <span id="audit-progress" class="audit-progress" hidden>
+          <span class="audit-progress-text"></span>
+          <span class="audit-progress-bar"><span class="audit-progress-fill"></span></span>
+          <button type="button"
+                  id="audit-progress-cancel"
+                  class="audit-progress-cancel"
+                  title="Cancel the running column-audit job (sends SIGTERM to the worker)."
+                  hidden>cancel</button>
+        </span>
+        <button type="button"
+                id="audit-all-capped-btn"
+                class="audit-all-btn"
+                title="Run the column-wide web verifier across every (source, column) whose adaptive arms hit their run-budget cap. Spawns one background job."
+                hidden>Audit all budget-capped columns</button>
+      </summary>
+      <div class="effort-body">
+        <p class="muted effort-help">
+          Per <strong>(source, column)</strong> projection of how many
+          distinct defect species the operator should expect to see if
+          they exhaust the cell, derived from the per-arm Chao1 / Good-
+          Turing estimator. Sorted by <em>missed</em> (Chao1's projected
+          unseen species) so high-impact cells surface first. Click a
+          row to filter the queue to that source.
+        </p>
+        <table class="effort-table" id="effort-table">
+          <thead>
+            <tr>
+              <th title="CSV the column belongs to">Source</th>
+              <th title="Column name">Column</th>
+              <th title="Distinct defect species observed across all error types and runs.">Seen</th>
+              <th title="Chao1 projected total distinct species (observed + unseen).">Total est.</th>
+              <th title="Chao1's projected unseen distinct species. The operator should plan to encounter ~this many more.">Missed est.</th>
+              <th title="Good-Turing missing mass: probability the next perturbed run surfaces a never-before-seen species. Higher = more uncertainty about coverage.">GT mass</th>
+              <th title="Cluster verdicts logged in the labelling store for this cell.">Labelled</th>
+              <th title="Saturated arms / total arms (one arm per error_type at this cell). Saturated = stop predicate met.">Arms sat.</th>
+              <th title="Run a column-wide web verification: the agent audits every distinct value (including never-flagged cells) and flags potential missed errors.">Web audit</th>
+            </tr>
+          </thead>
+          <tbody id="effort-body"></tbody>
+        </table>
+      </div>
+    </details>
+    <!-- Column-audit results: one collapsible block per audited
+         (source, column) pair. Populated lazily (by clicking
+         "Verify column" in the effort table) and on page load
+         from outputs/<run>/column_verifications/_index.jsonl.
+         The whole panel is itself a <details> so it can be
+         collapsed when many columns have been audited. -->
+    <details class="column-audit-panel" id="column-audit-panel" hidden>
+      <summary class="column-audit-head">
+        <span class="title">Column audit findings</span>
+        <span id="column-audit-headline" class="muted"></span>
+      </summary>
+      <div class="column-audit-body" id="column-audit-body"></div>
+    </details>
+  </main>
+
+  <section class="detail" id="detail">
+    <div class="placeholder">Select a cluster in the queue (or press <kbd>j</kbd>).</div>
+  </section>
+
+  <footer class="shortcuts">
+    <span><kbd>j</kbd>/<kbd>k</kbd> next/prev</span>
+    <span><kbd>1</kbd> tp</span>
+    <span><kbd>2</kbd> fp</span>
+    <span><kbd>3</kbd> partial</span>
+    <span><kbd>4</kbd> unsure</span>
+    <span><kbd>5</kbd> skip</span>
+    <span><kbd>c</kbd> corrected value</span>
+    <span><kbd>n</kbd> note</span>
+    <span><kbd>Enter</kbd> save + next <span class="muted">(defaults to fp)</span></span>
+    <span class="muted">click any cell to mark FN / re-label</span>
+  </footer>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- Add-inconsistency-cluster modal. Opened via the +Add button
+       in the CSV head; closed by the X / backdrop / Esc. The modal
+       lets the operator pick a column from the active CSV, multi-
+       select 2+ distinct values, designate one as canonical, and
+       optionally set the cluster kind. Submitting appends a new
+       ``StdCluster`` to the column's ``column_clusters.jsonl``
+       record (creating one if none exists) and refreshes the queue
+       so the new cluster shows up as a queue item with verdict
+       ``unlabeled``. -->
+  <div class="cc-modal" id="add-cluster-modal" hidden>
+    <div class="cc-modal-backdrop" data-modal-close="1"></div>
+    <div class="cc-modal-panel" role="dialog" aria-modal="true" aria-labelledby="add-cluster-title">
+      <div class="cc-modal-head">
+        <h2 id="add-cluster-title">Add inconsistency cluster</h2>
+        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
+      </div>
+      <div class="cc-modal-body">
+        <div class="cc-modal-row">
+          <label for="add-cluster-source" class="cc-modal-label">CSV</label>
+          <span id="add-cluster-source" class="cc-modal-static muted">(no CSV)</span>
+        </div>
+        <div class="cc-modal-row">
+          <label for="add-cluster-column" class="cc-modal-label">Column</label>
+          <select id="add-cluster-column"></select>
+        </div>
+        <div class="cc-modal-row">
+          <label for="add-cluster-kind" class="cc-modal-label">Kind</label>
+          <select id="add-cluster-kind">
+            <option value="untagged">untagged</option>
+            <option value="text" selected>text (entity variants)</option>
+            <option value="casing">casing</option>
+            <option value="pattern">pattern (template shape)</option>
+            <option value="punctuation">punctuation / whitespace</option>
+            <option value="numerical_format">numerical format</option>
+          </select>
+        </div>
+        <div class="cc-modal-row">
+          <label for="add-cluster-search" class="cc-modal-label">Values</label>
+          <input id="add-cluster-search" type="text" placeholder="filter values…" autocomplete="off" />
+        </div>
+        <div class="cc-modal-values" id="add-cluster-values">
+          <div class="muted">(select a column)</div>
+        </div>
+        <div class="cc-modal-summary muted" id="add-cluster-summary">0 values selected</div>
+      </div>
+      <div class="cc-modal-foot">
+        <button type="button" class="cc-modal-cancel" data-modal-close="1">Cancel</button>
+        <button type="button" id="add-cluster-submit" class="cc-modal-submit" disabled>Create cluster</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch corrections modal: progress + per-cluster results table.
+       Hidden by default; opened by the "Generate all corrections"
+       header button. The body is rendered by label.js so the layout
+       can react to the polled job state. -->
+  <div class="cc-modal" id="batch-corrections-modal" hidden>
+    <div class="cc-modal-backdrop" data-modal-close="1"></div>
+    <div class="cc-modal-panel cc-batch-panel" role="dialog" aria-modal="true" aria-labelledby="batch-corrections-title">
+      <div class="cc-modal-head">
+        <h2 id="batch-corrections-title">Batch correction generation</h2>
+        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
+      </div>
+      <div class="cc-modal-body" id="batch-corrections-body">
+        <!-- Populated by renderBatchCorrectionsModal(). -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Trivial-cell tagger: two-tab modal handling both whitespace
+       anomalies and phone-number format inconsistencies. Body
+       rendered by renderIdentifyTrivialModal(). The tab strip is
+       static markup; each tab's body is rendered per-tab into the
+       corresponding pane. -->
+  <div class="cc-modal" id="identify-trivial-modal" hidden>
+    <div class="cc-modal-backdrop" data-modal-close="1"></div>
+    <div class="cc-modal-panel cc-batch-panel" role="dialog" aria-modal="true" aria-labelledby="identify-trivial-title">
+      <div class="cc-modal-head">
+        <h2 id="identify-trivial-title">Tag Trivial</h2>
+        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
+      </div>
+      <div class="trivial-tab-strip" role="tablist" aria-label="Trivial-typo type">
+        <button type="button" class="trivial-tab is-active" role="tab"
+                aria-selected="true" data-trivial-tab="whitespace">
+          Whitespace
+        </button>
+        <button type="button" class="trivial-tab" role="tab"
+                aria-selected="false" data-trivial-tab="phone">
+          Phone format
+        </button>
+        <button type="button" class="trivial-tab" role="tab"
+                aria-selected="false" data-trivial-tab="rowdup">
+          Identical rows
+        </button>
+      </div>
+      <div class="cc-modal-body" id="identify-trivial-body"
+           data-active-tab="whitespace">
+        <!-- Populated by renderIdentifyTrivialModal(). Two panes are
+             rendered; only the active one is visible. -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Pre-export conflict guard: when the operator clicks any of the
+       "Export benchmark" links the front-end first hits
+       /export/conflicts. If any (source, column, value) triple has
+       divergent verdicts (e.g. one row marked error, another clean
+       for the same value), this modal surfaces the offending cells
+       with a "Jump" button next to each so the operator can correct
+       them in place. The export only proceeds if the modal is
+       dismissed via "Export anyway" (or the run was clean to start
+       with, in which case the modal never appears). Body is rendered
+       by renderExportConflictsModal() in label.js. -->
+  <div class="cc-modal" id="export-conflicts-modal" hidden>
+    <div class="cc-modal-backdrop" data-modal-close="1"></div>
+    <div class="cc-modal-panel export-conflict-panel" role="dialog" aria-modal="true" aria-labelledby="export-conflicts-title">
+      <div class="cc-modal-head">
+        <h2 id="export-conflicts-title">Inconsistent labels detected</h2>
+        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
+      </div>
+      <div class="cc-modal-body" id="export-conflicts-body">
+        <!-- Populated by renderExportConflictsModal(). -->
+      </div>
+      <div class="cc-modal-foot">
+        <button type="button" class="cc-modal-cancel" data-modal-close="1">Cancel &amp; revise</button>
+        <button type="button" id="export-conflicts-anyway" class="cc-modal-export-anyway">Export anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./label.js?v=13"></script>
+  <!-- Header export dropdown behaviour (outside-click / Esc to close).
+       Standalone module so it stays out of label.js; CSP-safe ('self'). -->
+  <script type="module" src="./header_menu.js?v=1"></script>
+</body>
+</html>

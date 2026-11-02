@@ -1,0 +1,65 @@
+{"source": "231603582_2014[edit].csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "pbi_500"}
+{"source": "291570422_Product.csv", "row": null, "column": "PName", "reason": "exclusion", "scope": "columns", "dataset": "pbi_500"}
+{"source": "271654051_Reseau_Etincelle_session_Formateurs_1.csv", "row": null, "column": "Date", "reason": "exclusion", "scope": "columns", "dataset": "pbi_500"}
+{"source": "246015408_Table.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "pbi_500"}
+{"source": "298840851_OTD Area Definitions.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "pbi_500"}
+{"source": "814445156_public actions.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "pbi_500"}
+{"source": "291570422_Product.csv", "row": null, "column": "PName", "reason": "exclusion", "scope": "columns", "dataset": "pbi_500"}
+{"source": "271654051_Reseau_Etincelle_session_Formateurs_1.csv", "row": null, "column": "Date", "reason": "exclusion", "scope": "columns", "dataset": "pbi_500"}
+{"source": "298840851_OTD Area Definitions.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "pbi_500"}
+{"source": "177366a965a3a890e6671c05cf6bd60749a47308.xlsx_172ea7a1.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "4065ea52e620ef0d774c9725647eb75961eef21c.xlsx_86b00121.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "42e9fe2ee9c3f885b8b8b940ccbbb73f6547582c.xlsx_b0b8e7c7.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "740a8078eb3363ce9b1bcd9b687465499a4cb3d3.xlsx_02245021.csv", "row": null, "column": "Contract Purpose", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "8406beb1cc1e4a5a35b7209654fb383276ea4ed9.xlsx_f19d755c.csv", "row": null, "column": "ACCOUNT DESCRIPTION", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "856e5721f03d56af5874c1a430c840b4a48b80ff.xlsx_956c5120.csv", "row": null, "column": "Property Address", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "a8df005b2f91de6840da7dac7e07c2e5ec91553e.xlsx_f6da8663.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "d899e3eb0b6ea817579acf600cda2045ba87a115.xlsx_2350d50e.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "e2c3de1732d7f83067bc6eff3ad359f84d53a7fd.xlsx_43e13fa4.csv", "row": null, "column": "Address", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "e2c3de1732d7f83067bc6eff3ad359f84d53a7fd.xlsx_43e13fa4.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "e55ca300b7e1021bbb53d4f13354265cdd8d2600.xlsx_01fd4a27.csv", "row": null, "column": "SPDESC", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "e57cce732fdc492d712ab7e854847e46a2969aec.xlsx_a929ccdd.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "ea4e64f7527fd52f8ecab04ae4eff0890b65eccf.xlsx_82829005.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "eaff6e4cbe7d0cf12d25b2e162a7f20dab459f43.xlsx_7afc0506.csv", "row": 98, "column": null, "reason": "exclusion", "scope": "rows", "dataset": "bing21_500"}
+{"source": "ee5725bd2cff03bd43c945f0dcf8e675d6dcae9a.xlsx_98c158cd.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "2768ea22b454f3483c6673a69511daa07fb8539e.xlsx_d67d0c7f.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "35d32792811e95964239c97d33127b6c6be4f28c.xlsx_b0045ca2.csv", "row": null, "column": "Material Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "3c8b0d81222fb24b70e66c3fe83575c3ba56ff26.xlsx_c7cbe7ce.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "423c72c0daa183f111ec94ab3d4472abe7e86be9.xlsx_9a3a1832.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "2183ebfdd3ec225c4f3063971d6a8e336f6799a7.xlsx_c85c0c15.csv", "row": null, "column": "Project Title", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "482b1a2eac210d4b8e712b5b141de2bb60d7aa1f.xlsx_69201d43.csv", "row": null, "column": "Vendor", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "3cfa60ccdafe93631aa050891097e91fa81d550a.xlsx_9c374f82.csv", "row": null, "column": "Title", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "beccd796f4bc616884b382f2bb356f01e3181c25.xlsx_681d68c2.csv", "row": null, "column": "Location", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "0cb0363a3fb3c431bf71f3067feb9ba7cec0a4c7.xlsx_9a6e117e.csv", "row": null, "column": "Ed Code Waived", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "e7e6774c1ecb9fbea48351407e5704c17ff03e16.xlsx_a607b1bd.csv", "row": null, "column": "theo_mwMonoisotopic", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "e7e6774c1ecb9fbea48351407e5704c17ff03e16.xlsx_a607b1bd.csv", "row": null, "column": "inferredStructure", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "fb5b5bdcdb202665b14dc8097fae3814635df7de.xlsx_d226ef29.csv", "row": null, "column": "Supplier Name", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "b40de7f9725628d91050473c3cea1be5209d8b90.xlsx_bc017543.csv", "row": null, "column": "Name", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "2768ea22b454f3483c6673a69511daa07fb8539e.xlsx_d67d0c7f.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "3c8b0d81222fb24b70e66c3fe83575c3ba56ff26.xlsx_c7cbe7ce.csv", "row": null, "column": "Description", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "4065ea52e620ef0d774c9725647eb75961eef21c.xlsx_86b00121.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "42b0033a57150999be1fe19acb13b1ce7a83e5b9.xlsx_9002f204.csv", "row": null, "column": "PartyPLRep_address", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "9e88f5c6ea73fd026cdb364a1176fa64c220171b.xlsx_2b2ce8bd.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "a8df005b2f91de6840da7dac7e07c2e5ec91553e.xlsx_f6da8663.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "d899e3eb0b6ea817579acf600cda2045ba87a115.xlsx_2350d50e.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "ee5725bd2cff03bd43c945f0dcf8e675d6dcae9a.xlsx_98c158cd.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "f71840d60e2d1cf948808f21346df3d277dd4d11.xlsx_0fbfa6e2.csv", "row": null, "column": "Address", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "2a98e20284fb6c524e7e1e4ece809f6d4a867cfa.xlsx_29abb022.csv", "row": null, "column": "Visiting Team's Name", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "3f125c41c34f75d5b0d7a2e6f63a9f370ccd86b5.xlsx_e2acebce.csv", "row": null, "column": "As named in Results", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "85b6b9789f50a9f230952aca89c94f407ad33c8f.xlsx_a38e058f.csv", "row": null, "column": "Degree Name", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "42b0033a57150999be1fe19acb13b1ce7a83e5b9.xlsx_9002f204.csv", "row": null, "column": "Propaddress", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "561a0cafa17a60dfbbbd153f712c9c08ea85813c.xlsx_913b447b.csv", "row": null, "column": "Boat Type", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "561a0cafa17a60dfbbbd153f712c9c08ea85813c.xlsx_2dc8916f.csv", "row": null, "column": "Boat Type", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "dfd8d8e1295c4e8df7a276d28f8845a634170ba2.xlsx_5f3420d2.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "e55ca300b7e1021bbb53d4f13354265cdd8d2600.xlsx_01fd4a27.csv", "row": null, "column": "SPDESC", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "edc98f5613c19d8a503353e3de6f8e3b972274ee.xlsx_49fc4ecc.csv", "row": null, "column": "CF 28/09/2016", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "cee51baf709c54997857b76ece0d733e45eead7d.xlsx_981f5272.csv", "row": null, "column": "Applicability", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "740a8078eb3363ce9b1bcd9b687465499a4cb3d3.xlsx_02245021.csv", "row": null, "column": "Contract Purpose", "reason": "exclusion", "scope": "columns", "dataset": "bing21_500"}
+{"source": "4065ea52e620ef0d774c9725647eb75961eef21c.xlsx_86b00121.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "d4006fe8f8873d4d022e0b5d91949bafd7c7e2a1.xlsx_fa57921b.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "fa52bd549a9db0196b12cfb8721c1abcae9ce7af.xlsx_317b5b97.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "618fba6d07aeedac47e8a81d263f79ca2c31bb5c.xlsx_1864f15f.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "7da4005c7ceba06cbb716abfd8de85e5e932f987.xlsx_8a585498.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "45cdf3655451ec4faa89a1d54660f9120571a54d.xlsx_165c8f81.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "0c193a7d34b5d4fe53c7a0ce0e7aac59aa10137b.xlsx_8c6da0b3.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}
+{"source": "48cd5ed30f9aae6b421404ed629501396878133d.xlsx_787c42de.csv", "row": null, "column": null, "reason": "exclusion", "scope": "csv", "dataset": "bing21_500"}

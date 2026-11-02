@@ -1,0 +1,3 @@
+/* Local annotation release: no model or web service actions. */
+#batch-corrections-btn, #identify-trivial-btn, .cc-corrections-generate,
+.web-verify-btn { display: none !important; }
