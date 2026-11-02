@@ -20,11 +20,7 @@ corrections, exclusions, coordinate mapping, and scoring rules. The frozen
 files are under `benchmark/`; the `*.json` label files are **JSONL**, one object
 per line.
 
-Verify the download with Python 3.10 or newer; no packages or model account are needed:
-
-```bash
-python scripts/verify_benchmark.py
-```
+Benchmark scoring uses Python 3.10 or newer and the standard library.
 
 Extract the source tables if needed:
 
@@ -54,19 +50,31 @@ cd CleanBench
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m src.labeling serve --workspace workspace --annotator your-name
+./scripts/run_server.sh start --workspace workspace --annotator your-name
 ```
 
-Open **http://127.0.0.1:8000/**. On Windows, activate the environment with
-`.venv\Scripts\activate` instead. In the browser, import UTF-8 CSVs and an
-optional candidate JSONL file. Without candidates, every cell enters the review queue.
+Open **http://127.0.0.1:8000/**. The startup script uses `.venv` automatically
+and runs the server in the background, writing logs to `logs/workbench.log`.
+
+To check, restart, or stop the server:
+
+```bash
+./scripts/run_server.sh status
+./scripts/run_server.sh restart --workspace workspace --annotator your-name
+./scripts/run_server.sh stop
+```
+
+On Windows, activate the environment with `.venv\Scripts\activate` and start
+the server with `python -m src.labeling serve --workspace workspace --annotator your-name`.
+
+In the browser, import UTF-8 CSVs and an optional candidate JSONL file.
+Without candidates, every cell enters the review queue.
 
 To try the small, synthetic example from the command line:
 
 ```bash
 python -m src.labeling import --workspace workspace --run-id demo \
   --csv examples/people.csv --candidates examples/candidates.jsonl
-python -m src.labeling serve --workspace workspace --annotator your-name
 ```
 
 The [labeling guide](LABELING_GUIDE.md) covers decisions, corrections, missed
@@ -82,7 +90,7 @@ src/labeling/        Local import, annotation API, stores, and export
 src/core/            Shared CSV and header utilities
 frontend/labeling/   Table grid, review queue, and column board
 examples/            Synthetic CSV and candidate file for a first run
-scripts/             Offline benchmark verification
+scripts/             Start, stop, restart, and check the annotation server
 tests/               Store, API, export, import, and scoring checks
 ```
 

@@ -20,3 +20,4 @@ AGENTS.md
 /RELEASE_PLAN.md
 /RELEASE_VALIDATION.md
 /requirements-dev.txt
+/scripts/verify_benchmark.py

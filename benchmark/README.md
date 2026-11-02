@@ -84,7 +84,7 @@ labels and keep evaluation labels separate from training data.
 
 ## Integrity and provenance
 
-From the repository root, run `python scripts/verify_benchmark.py`. It checks
-artifact and source hashes, all 2,251 cell coordinates and original values,
-row maps, table shapes, and release totals. Source rights and construction
-notes are in [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
+`release_manifest.json` records artifact SHA-256 checksums and release totals.
+The source archive's `MANIFEST.json` records each CSV's checksum and shape;
+`_ROW_MAP.json` preserves original row coordinates. Source rights and
+construction notes are in [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
