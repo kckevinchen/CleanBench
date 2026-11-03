@@ -1402,7 +1402,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         ):
             raise HTTPException(
                 400,
-                "status must be one of tp/fp/partial/unsure/skip for " "cluster propagation",
+                "status must be one of tp/fp/partial/unsure/skip for cluster propagation",
             )
 
         ctx = cache.get(run_id)

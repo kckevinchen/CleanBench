@@ -29,10 +29,10 @@ from ..export import (
     find_label_conflicts,
     full_benchmark_record,
     materialize_ignored_cells,
-    materialize_label_benchmark,
     materialize_label_benchmark_by_error_type,
-    materialize_skipped_cells,
 )
+from ..export_service import collect_cells, collect_skipped, download_transaction
+from ..file_io import atomic_path
 from ..schema import ExclusionScope
 from ._context import RouterContext
 
@@ -40,13 +40,12 @@ from ._context import RouterContext
 def _write_jsonl_atomic(path: Path, rows: List[Dict[str, Any]]) -> int:
     """Write ``rows`` as JSONL to ``path`` via a tmp + os.replace swap so a
     concurrent reader never observes a truncated file. Returns the row count."""
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    n = 0
-    with tmp.open("w", encoding="utf-8") as fh:
-        for row in rows:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-            n += 1
-    os.replace(tmp, path)
+    with atomic_path(path) as tmp:
+        n = 0
+        with tmp.open("w", encoding="utf-8") as fh:
+            for row in rows:
+                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+                n += 1
     return n
 
 
@@ -96,6 +95,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
     cache = router_ctx.cache
 
     @app.get("/api/runs/{run_id}/export/conflicts")
+    @download_transaction(cache)
     def export_conflicts(run_id: str) -> Dict[str, Any]:
         """Pre-export sanity check: groups of (source, column,
         original_value) cells whose ``label`` verdicts disagree.
@@ -112,69 +112,36 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         operator jump straight to each offending cell.
         """
         ctx = cache.get(run_id)
-        cells = materialize_label_benchmark(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            cell_note_overrides=ctx.cell_notes_store.active_overrides(),
-            row_verdict_overrides=ctx.row_verdict_store.active_overrides(),
-        )
-        # Inconsistency cells share the (source, row, column,
-        # original_value) key space so any divergent labels across
-        # the typo and inconsistency pipelines surface here too.
-        cells.extend(_materialize_inconsistency_cells_for_export(ctx))
-        # Keep duplicate cross-pipeline rows here: contradictory labels must
-        # remain visible to the conflict dialog. Actual exports deduplicate.
-        cells = _apply_exclusions_to_cells(ctx, cells)
+        cells = collect_cells(ctx, deduplicate=False)
         conflicts = find_label_conflicts(cells)
         return {"conflicts": conflicts}
 
     @app.get("/api/runs/{run_id}/export/benchmark")
+    @download_transaction(cache)
     def export_benchmark(run_id: str) -> FileResponse:
         ctx = cache.get(run_id)
         # Materialise once, drop excluded slices, then write.
         # Tracks the same exclusion semantics as /export/sources so
         # the benchmark and the sanitised CSV bundle never disagree.
-        cells = materialize_label_benchmark(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            cell_note_overrides=ctx.cell_notes_store.active_overrides(),
-            row_verdict_overrides=ctx.row_verdict_store.active_overrides(),
-        )
-        # Append cache-only inconsistency cells so column-cluster-only
-        # runs (where ``clusters.json`` is empty) still get a populated
-        # benchmark from this single endpoint.
-        cells.extend(_materialize_inconsistency_cells_for_export(ctx))
-        cells = _apply_exclusions_to_cells(ctx, cells)
-        cells = _deduplicate_benchmark_cells(cells)
+        cells = collect_cells(ctx)
         out_path = ctx.run_dir / "benchmark.jsonl"
-        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            for cell in cells:
-                fh.write(json.dumps(full_benchmark_record(cell), ensure_ascii=False) + "\n")
-        os.replace(tmp_path, out_path)
+        with atomic_path(out_path) as tmp_path:
+            with tmp_path.open("w", encoding="utf-8") as fh:
+                for cell in cells:
+                    fh.write(json.dumps(full_benchmark_record(cell), ensure_ascii=False) + "\n")
         # Sidecar: the IMMUNITY set - cells absent from benchmark.jsonl that
         # an eval must NOT score as FP/FN. Merges the operator's SKIPPED
         # (deferred) cells with the active scope EXCLUSIONS into one
         # ``benchmark.ignored.jsonl`` (see :func:`materialize_ignored_cells`).
         # Skip cells inside an excluded slice are dropped here (the exclusion
         # sentinel already covers them), keeping it aligned with benchmark.jsonl.
-        bench_keys = {(c.source, c.row, c.column) for c in cells}
-        skipped = materialize_skipped_cells(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            exclude_keys=bench_keys,
-        )
-        skipped = _apply_exclusions_to_cells(ctx, skipped)
+        skipped = collect_skipped(ctx, cells)
         ignored = materialize_ignored_cells(skipped, ctx.exclusions_store.active())
         ignore_path = ctx.run_dir / "benchmark.ignored.jsonl"
-        ignore_tmp = ignore_path.with_suffix(ignore_path.suffix + ".tmp")
-        with ignore_tmp.open("w", encoding="utf-8") as fh:
-            for rec in ignored:
-                fh.write(json.dumps(rec.model_dump(), ensure_ascii=False) + "\n")
-        os.replace(ignore_tmp, ignore_path)
+        with atomic_path(ignore_path) as ignore_tmp:
+            with ignore_tmp.open("w", encoding="utf-8") as fh:
+                for rec in ignored:
+                    fh.write(json.dumps(rec.model_dump(), ensure_ascii=False) + "\n")
         return FileResponse(
             out_path,
             media_type="application/x-ndjson",
@@ -182,6 +149,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         )
 
     @app.get("/api/runs/{run_id}/export/bundle")
+    @download_transaction(cache)
     def export_bundle(run_id: str) -> FileResponse:
         """One-click EVAL BUNDLE: benchmark + ignored + manifest, zipped.
 
@@ -208,29 +176,13 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         ctx = cache.get(run_id)
         # 1. benchmark.jsonl - identical materialisation + exclusion filter to
         #    /export/benchmark so the two never diverge.
-        cells = materialize_label_benchmark(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            cell_note_overrides=ctx.cell_notes_store.active_overrides(),
-            row_verdict_overrides=ctx.row_verdict_store.active_overrides(),
-        )
-        cells.extend(_materialize_inconsistency_cells_for_export(ctx))
-        cells = _apply_exclusions_to_cells(ctx, cells)
-        cells = _deduplicate_benchmark_cells(cells)
+        cells = collect_cells(ctx)
         bench_path = ctx.run_dir / "benchmark.jsonl"
         n_bench = _write_jsonl_atomic(bench_path, [full_benchmark_record(c) for c in cells])
         # 2. benchmark.ignored.jsonl - merged immunity: deferred (skip) cells
         #    not already in benchmark, plus the active scope exclusions as
         #    compact sentinels (see materialize_ignored_cells).
-        bench_keys = {(c.source, c.row, c.column) for c in cells}
-        skipped = materialize_skipped_cells(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            exclude_keys=bench_keys,
-        )
-        skipped = _apply_exclusions_to_cells(ctx, skipped)
+        skipped = collect_skipped(ctx, cells)
         actives = ctx.exclusions_store.active()
         ignored = materialize_ignored_cells(skipped, actives)
         ignore_path = ctx.run_dir / "benchmark.ignored.jsonl"
@@ -239,12 +191,11 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         manifest = _bundle_manifest(run_id, n_bench, n_ignore, n_excl)
         # 3. zip it all up.
         zip_path = ctx.run_dir / f"benchmark_bundle_{run_id}.zip"
-        tmp_zip = zip_path.with_suffix(zip_path.suffix + ".tmp")
-        with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            zf.write(bench_path, arcname="benchmark.jsonl")
-            zf.write(ignore_path, arcname="benchmark.ignored.jsonl")
-            zf.writestr("MANIFEST.txt", manifest)
-        os.replace(tmp_zip, zip_path)
+        with atomic_path(zip_path) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                zf.write(bench_path, arcname="benchmark.jsonl")
+                zf.write(ignore_path, arcname="benchmark.ignored.jsonl")
+                zf.writestr("MANIFEST.txt", manifest)
         return FileResponse(
             zip_path,
             media_type="application/zip",
@@ -252,6 +203,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         )
 
     @app.get("/api/runs/{run_id}/export/low-value")
+    @download_transaction(cache)
     def export_low_value(run_id: str) -> FileResponse:
         """Sidecar JSONL of the 'low value' false positives.
 
@@ -262,23 +214,13 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         exclusion semantics as ``benchmark.jsonl``. Regenerated each request.
         """
         ctx = cache.get(run_id)
-        cells = materialize_label_benchmark(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            cell_note_overrides=ctx.cell_notes_store.active_overrides(),
-            row_verdict_overrides=ctx.row_verdict_store.active_overrides(),
-        )
-        cells.extend(_materialize_inconsistency_cells_for_export(ctx))
-        cells = _apply_exclusions_to_cells(ctx, cells)
-        cells = _deduplicate_benchmark_cells(cells)
+        cells = collect_cells(ctx)
         low = [c for c in cells if getattr(c, "low_value", False)]
         out_path = ctx.run_dir / "benchmark.low_value.jsonl"
-        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            for cell in low:
-                fh.write(json.dumps(full_benchmark_record(cell), ensure_ascii=False) + "\n")
-        os.replace(tmp_path, out_path)
+        with atomic_path(out_path) as tmp_path:
+            with tmp_path.open("w", encoding="utf-8") as fh:
+                for cell in low:
+                    fh.write(json.dumps(full_benchmark_record(cell), ensure_ascii=False) + "\n")
         return FileResponse(
             out_path,
             media_type="application/x-ndjson",
@@ -287,6 +229,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
 
     @app.get("/api/runs/{run_id}/export/ignored")
     @app.get("/api/runs/{run_id}/export/skipped")  # back-compat alias
+    @download_transaction(cache)
     def export_ignored(run_id: str) -> FileResponse:
         """Sidecar JSONL of the IMMUNITY set (skipped + excluded cells).
 
@@ -302,31 +245,14 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         The legacy ``/export/skipped`` path is kept as an alias.
         """
         ctx = cache.get(run_id)
-        cells = materialize_label_benchmark(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            cell_note_overrides=ctx.cell_notes_store.active_overrides(),
-            row_verdict_overrides=ctx.row_verdict_store.active_overrides(),
-        )
-        cells.extend(_materialize_inconsistency_cells_for_export(ctx))
-        cells = _apply_exclusions_to_cells(ctx, cells)
-        cells = _deduplicate_benchmark_cells(cells)
-        bench_keys = {(c.source, c.row, c.column) for c in cells}
-        skipped = materialize_skipped_cells(
-            ctx.clusters,
-            ctx.store,
-            value_resolver=_make_value_resolver(ctx),
-            exclude_keys=bench_keys,
-        )
-        skipped = _apply_exclusions_to_cells(ctx, skipped)
+        cells = collect_cells(ctx)
+        skipped = collect_skipped(ctx, cells)
         ignored = materialize_ignored_cells(skipped, ctx.exclusions_store.active())
         out_path = ctx.run_dir / "benchmark.ignored.jsonl"
-        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            for rec in ignored:
-                fh.write(json.dumps(rec.model_dump(), ensure_ascii=False) + "\n")
-        os.replace(tmp_path, out_path)
+        with atomic_path(out_path) as tmp_path:
+            with tmp_path.open("w", encoding="utf-8") as fh:
+                for rec in ignored:
+                    fh.write(json.dumps(rec.model_dump(), ensure_ascii=False) + "\n")
         return FileResponse(
             out_path,
             media_type="application/x-ndjson",
@@ -334,6 +260,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         )
 
     @app.get("/api/runs/{run_id}/export/benchmark-by-type")
+    @download_transaction(cache)
     def export_benchmark_by_type(run_id: str) -> FileResponse:
         """Per-error-type benchmark bundle.
 
@@ -390,27 +317,25 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
                     pass
         for slug, rows in filtered.items():
             path = out_dir / f"{slug}.jsonl"
-            tmp_path = path.with_suffix(path.suffix + ".tmp")
-            with tmp_path.open("w", encoding="utf-8") as fh:
-                for cell in rows:
-                    fh.write(
-                        json.dumps(
-                            benchmark_record_for_export(cell, slug),
-                            ensure_ascii=False,
+            with atomic_path(path) as tmp_path:
+                with tmp_path.open("w", encoding="utf-8") as fh:
+                    for cell in rows:
+                        fh.write(
+                            json.dumps(
+                                benchmark_record_for_export(cell, slug),
+                                ensure_ascii=False,
+                            )
+                            + "\n"
                         )
-                        + "\n"
-                    )
-            os.replace(tmp_path, path)
         # Zip the per-type directory for a single-file download. We
         # rebuild the zip every request so it stays in sync with the
         # latest labels (the operator may have just labelled more
         # clusters before clicking "Per-type benchmark").
         zip_path = ctx.run_dir / "benchmark_by_type.zip"
-        tmp_zip = zip_path.with_suffix(zip_path.suffix + ".tmp")
-        with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for path in sorted(out_dir.glob("*.jsonl")):
-                zf.write(path, arcname=path.name)
-        os.replace(tmp_zip, zip_path)
+        with atomic_path(zip_path) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for path in sorted(out_dir.glob("*.jsonl")):
+                    zf.write(path, arcname=path.name)
         return FileResponse(
             zip_path,
             media_type="application/zip",
@@ -418,6 +343,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         )
 
     @app.get("/api/runs/{run_id}/export/benchmark/{error_type}")
+    @download_transaction(cache)
     def export_benchmark_single_type(run_id: str, error_type: str) -> FileResponse:
         """Per-(run, error_type) benchmark JSONL.
 
@@ -485,17 +411,16 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         out_dir = ctx.run_dir / "benchmark_by_type"
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{slug}.jsonl"
-        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            for cell in rows:
-                fh.write(
-                    json.dumps(
-                        benchmark_record_for_export(cell, slug),
-                        ensure_ascii=False,
+        with atomic_path(out_path) as tmp_path:
+            with tmp_path.open("w", encoding="utf-8") as fh:
+                for cell in rows:
+                    fh.write(
+                        json.dumps(
+                            benchmark_record_for_export(cell, slug),
+                            ensure_ascii=False,
+                        )
+                        + "\n"
                     )
-                    + "\n"
-                )
-        os.replace(tmp_path, out_path)
         return FileResponse(
             out_path,
             media_type="application/x-ndjson",
@@ -503,6 +428,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         )
 
     @app.get("/api/runs/{run_id}/export/sources")
+    @download_transaction(cache)
     def export_sources(run_id: str) -> FileResponse:
         """ZIP of the run's source CSVs, sanitised against exclusions.
 
@@ -602,85 +528,83 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         out_dir = ctx.run_dir / "sanitised_sources"
         out_dir.mkdir(parents=True, exist_ok=True)
         zip_path = ctx.run_dir / f"sanitised_sources_{run_id}.zip"
-        tmp_zip = zip_path.with_suffix(zip_path.suffix + ".tmp")
-        with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            row_maps: List[Dict[str, Any]] = []
-            for source, src_path in included:
-                arcname = _arcname(src_path, source)
-                drop_rows = per_source_rows.get(source) or set()
-                drop_cols = per_source_cols.get(source) or set()
-                if not drop_rows and not drop_cols:
-                    # Fast path: copy the raw file verbatim so
-                    # encoding / quoting / mixed dtypes survive.
-                    if not src_path.exists():
+        with atomic_path(zip_path) as tmp_zip:
+            with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                row_maps: List[Dict[str, Any]] = []
+                for source, src_path in included:
+                    arcname = _arcname(src_path, source)
+                    drop_rows = per_source_rows.get(source) or set()
+                    drop_cols = per_source_cols.get(source) or set()
+                    if not drop_rows and not drop_cols:
+                        # Fast path: copy the raw file verbatim so
+                        # encoding / quoting / mixed dtypes survive.
+                        if not src_path.exists():
+                            raise HTTPException(
+                                500,
+                                detail={
+                                    "error": "source_export_failed",
+                                    "source": source,
+                                    "reason": "source file is missing",
+                                },
+                            )
+                        zf.write(src_path, arcname=arcname)
+                        continue
+                    # Row / column exclusions: re-emit via the loaded frame
+                    # so the dropped slices line up with the indices the
+                    # labelling UI used.
+                    try:
+                        frame = ctx.load_frame(source)
+                    except (FileNotFoundError, OSError, ValueError) as exc:
                         raise HTTPException(
                             500,
                             detail={
                                 "error": "source_export_failed",
                                 "source": source,
-                                "reason": "source file is missing",
+                                "reason": str(exc),
                             },
+                        ) from exc
+                    if drop_cols:
+                        keep_cols = [c for c in frame.columns if c not in drop_cols]
+                        frame = frame.loc[:, keep_cols]
+                    if drop_rows:
+                        keep_mask = [i for i in range(len(frame)) if i not in drop_rows]
+                        frame = frame.iloc[keep_mask]
+                        row_maps.append(
+                            {
+                                "source": source,
+                                "path": arcname,
+                                "exported_to_source": keep_mask,
+                            }
                         )
-                    zf.write(src_path, arcname=arcname)
-                    continue
-                # Row / column exclusions: re-emit via the loaded frame
-                # so the dropped slices line up with the indices the
-                # labelling UI used.
-                try:
-                    frame = ctx.load_frame(source)
-                except (FileNotFoundError, OSError, ValueError) as exc:
-                    raise HTTPException(
-                        500,
-                        detail={
-                            "error": "source_export_failed",
-                            "source": source,
-                            "reason": str(exc),
-                        },
-                    ) from exc
-                if drop_cols:
-                    keep_cols = [c for c in frame.columns if c not in drop_cols]
-                    frame = frame.loc[:, keep_cols]
-                if drop_rows:
-                    keep_mask = [i for i in range(len(frame)) if i not in drop_rows]
-                    frame = frame.iloc[keep_mask]
-                    row_maps.append(
-                        {
-                            "source": source,
-                            "path": arcname,
-                            "exported_to_source": keep_mask,
-                        }
+                    # Materialise the sanitised frame to disk first so
+                    # zipfile can stream its bytes; the directory is
+                    # reused on every export so it doubles as an
+                    # inspectable artefact under <run_dir>. Use the same
+                    # arcname-relative layout on disk as in the zip so an
+                    # operator browsing the run dir sees the full corpus
+                    # structure, not flat basenames.
+                    out_path = out_dir / arcname
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
+                    with atomic_path(out_path) as tmp_path:
+                        frame.to_csv(tmp_path, index=False)
+                    zf.write(out_path, arcname=arcname)
+                if row_maps:
+                    zf.writestr(
+                        "_ROW_MAP.json",
+                        json.dumps(
+                            {
+                                "version": 1,
+                                "description": (
+                                    "For each row-filtered CSV, exported_to_source[i] "
+                                    "is the original zero-based source row for exported "
+                                    "data row i."
+                                ),
+                                "sources": row_maps,
+                            },
+                            ensure_ascii=False,
+                            indent=2,
+                        ),
                     )
-                # Materialise the sanitised frame to disk first so
-                # zipfile can stream its bytes; the directory is
-                # reused on every export so it doubles as an
-                # inspectable artefact under <run_dir>. Use the same
-                # arcname-relative layout on disk as in the zip so an
-                # operator browsing the run dir sees the full corpus
-                # structure, not flat basenames.
-                out_path = out_dir / arcname
-                out_path.parent.mkdir(parents=True, exist_ok=True)
-                tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
-                frame.to_csv(tmp_path, index=False)
-                os.replace(tmp_path, out_path)
-                zf.write(out_path, arcname=arcname)
-            if row_maps:
-                zf.writestr(
-                    "_ROW_MAP.json",
-                    json.dumps(
-                        {
-                            "version": 1,
-                            "description": (
-                                "For each row-filtered CSV, exported_to_source[i] "
-                                "is the original zero-based source row for exported "
-                                "data row i."
-                            ),
-                            "sources": row_maps,
-                        },
-                        ensure_ascii=False,
-                        indent=2,
-                    ),
-                )
-        os.replace(tmp_zip, zip_path)
         return FileResponse(
             zip_path,
             media_type="application/zip",

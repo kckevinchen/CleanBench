@@ -148,7 +148,7 @@ def materialize_inconsistency_benchmark(
             matched_idx = list(col_series.index[mask])
             if not matched_idx:
                 logger.warning(
-                    "Cluster %s has no matching rows in %s/%s; " "labelling artifact may be stale.",
+                    "Cluster %s has no matching rows in %s/%s; labelling artifact may be stale.",
                     gid,
                     rec.source,
                     rec.column,

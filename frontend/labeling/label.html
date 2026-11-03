@@ -21,7 +21,6 @@
        Restyles existing markup only (no DOM/JS changes); drop this one line
        to revert to the base look. -->
   <link rel="stylesheet" href="./refresh.css?v=6" />
-  <link rel="stylesheet" href="./local.css" />
 </head>
 <body>
   <header>
@@ -56,14 +55,8 @@
           <a id="export-sources-link" href="#" download title="ZIP of source CSVs minus exclusions (whole-file, row, and column exclusions are stripped out)" role="menuitem">Export source CSVs</a>
         </div>
       </details>
-      <button id="batch-corrections-btn" class="hdr-btn" type="button"
-              title="Generate per-value corrections for every TP / unsure cluster in this run (LLM, K=3 self-consistency).">
-        Generate all corrections
-      </button>
-      <button id="identify-trivial-btn" class="hdr-btn" type="button"
-              title="Tag two classes of trivial-typo cells: whitespace-anomaly cells (existing labels get TRIVIAL appended to their note) and phone-format-inconsistency cells (cluster gets SKIP, cell gets FN+canonical with TRIVIAL phone_format note). Idempotent: rows already tagged are skipped.">
-        Tag Trivial
-      </button>
+
+
       <a href="/api/docs" target="_blank" rel="noopener">API</a>
     </div>
   </header>
@@ -311,52 +304,14 @@
        Hidden by default; opened by the "Generate all corrections"
        header button. The body is rendered by label.js so the layout
        can react to the polled job state. -->
-  <div class="cc-modal" id="batch-corrections-modal" hidden>
-    <div class="cc-modal-backdrop" data-modal-close="1"></div>
-    <div class="cc-modal-panel cc-batch-panel" role="dialog" aria-modal="true" aria-labelledby="batch-corrections-title">
-      <div class="cc-modal-head">
-        <h2 id="batch-corrections-title">Batch correction generation</h2>
-        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
-      </div>
-      <div class="cc-modal-body" id="batch-corrections-body">
-        <!-- Populated by renderBatchCorrectionsModal(). -->
-      </div>
-    </div>
-  </div>
+
 
   <!-- Trivial-cell tagger: two-tab modal handling both whitespace
        anomalies and phone-number format inconsistencies. Body
        rendered by renderIdentifyTrivialModal(). The tab strip is
        static markup; each tab's body is rendered per-tab into the
        corresponding pane. -->
-  <div class="cc-modal" id="identify-trivial-modal" hidden>
-    <div class="cc-modal-backdrop" data-modal-close="1"></div>
-    <div class="cc-modal-panel cc-batch-panel" role="dialog" aria-modal="true" aria-labelledby="identify-trivial-title">
-      <div class="cc-modal-head">
-        <h2 id="identify-trivial-title">Tag Trivial</h2>
-        <button type="button" class="cc-modal-close" data-modal-close="1" aria-label="close">×</button>
-      </div>
-      <div class="trivial-tab-strip" role="tablist" aria-label="Trivial-typo type">
-        <button type="button" class="trivial-tab is-active" role="tab"
-                aria-selected="true" data-trivial-tab="whitespace">
-          Whitespace
-        </button>
-        <button type="button" class="trivial-tab" role="tab"
-                aria-selected="false" data-trivial-tab="phone">
-          Phone format
-        </button>
-        <button type="button" class="trivial-tab" role="tab"
-                aria-selected="false" data-trivial-tab="rowdup">
-          Identical rows
-        </button>
-      </div>
-      <div class="cc-modal-body" id="identify-trivial-body"
-           data-active-tab="whitespace">
-        <!-- Populated by renderIdentifyTrivialModal(). Two panes are
-             rendered; only the active one is visible. -->
-      </div>
-    </div>
-  </div>
+
 
   <!-- Pre-export conflict guard: when the operator clicks any of the
        "Export benchmark" links the front-end first hits

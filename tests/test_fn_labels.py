@@ -41,7 +41,8 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_test") -> Path:
     data_dir = project / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     (data_dir / "a.csv").write_text(
-        "name,email\nalice,a@x\nbob,b@x\ncarol,c@x\n", encoding="utf-8",
+        "name,email\nalice,a@x\nbob,b@x\ncarol,c@x\n",
+        encoding="utf-8",
     )
 
     outputs = project / "outputs"
@@ -173,7 +174,11 @@ class TestPostFNLabel:
 
 class TestCellState:
     def _post_cluster_status(
-        self, client: TestClient, run_id: str, cid: str, status: str,
+        self,
+        client: TestClient,
+        run_id: str,
+        cid: str,
+        status: str,
     ) -> None:
         r = client.post(
             f"/api/runs/{run_id}/labels",
@@ -208,8 +213,12 @@ class TestCellState:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
             },
         )
         cells = client.get(f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
@@ -218,7 +227,8 @@ class TestCellState:
         assert match[0]["label_source"] == "cell"
 
     def test_tp_cluster_supersedes_pre_existing_fn_on_same_cell(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         """Operator labels (a.csv, row=1, col=name) as FN, then later
         promotes cluster c1 (which covers the same cell) to TP. The
@@ -230,8 +240,13 @@ class TestCellState:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 1, "column": "name", "status": "fn", "note": "missed",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "fn",
+                "note": "missed",
             },
         )
         self._post_cluster_status(client, run_id, "c1", "tp")
@@ -243,7 +258,8 @@ class TestCellState:
         assert body["shadowed_fn_count"] == 1
 
     def test_fp_records_not_an_error_and_keeps_cell_visible(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         """``fp`` on a cell is a RECORDED "reviewed, not an error" verdict --
         it must KEEP the cell visible (surface in /cells as ``fp``), not
@@ -256,8 +272,12 @@ class TestCellState:
             client.post(
                 f"/api/runs/{run_id}/labels",
                 json={
-                    "target": "cell", "target_id": "x", "source": "a.csv",
-                    "row": 2, "column": "email", "status": status,
+                    "target": "cell",
+                    "target_id": "x",
+                    "source": "a.csv",
+                    "row": 2,
+                    "column": "email",
+                    "status": status,
                 },
             )
         cells = client.get(f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
@@ -268,10 +288,7 @@ class TestCellState:
         assert match[0]["label_source"] == "cell"
         # It also stays in the FN review queue so the operator doesn't lose it.
         fn_items = client.get(f"/api/runs/{run_id}/fn-cells").json()["items"]
-        fp_item = [
-            i for i in fn_items
-            if i["row"] == 2 and i["column"] == "email"
-        ]
+        fp_item = [i for i in fn_items if i["row"] == 2 and i["column"] == "email"]
         assert fp_item and fp_item[0]["status"] == "fp"
 
     def test_unlabeled_retract_removes_cell(self, client_and_run) -> None:
@@ -283,8 +300,12 @@ class TestCellState:
             client.post(
                 f"/api/runs/{run_id}/labels",
                 json={
-                    "target": "cell", "target_id": "x", "source": "a.csv",
-                    "row": 2, "column": "email", "status": status,
+                    "target": "cell",
+                    "target_id": "x",
+                    "source": "a.csv",
+                    "row": 2,
+                    "column": "email",
+                    "status": status,
                 },
             )
         cells = client.get(f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
@@ -294,7 +315,9 @@ class TestCellState:
 
     @pytest.mark.parametrize("status", ["partial", "unsure", "skip", "fp"])
     def test_non_fn_cell_label_appears_in_state(
-        self, client_and_run, status,
+        self,
+        client_and_run,
+        status,
     ) -> None:
         """A cell label carrying a non-FN verdict (partial / unsure / skip /
         fp -- produced by the trivial-convert flow and the FN detail panel)
@@ -305,8 +328,12 @@ class TestCellState:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": status,
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": status,
                 "corrected_value": "fixed@x",
                 "note": "(auto: punctuation anomaly) TRIVIAL [LLM-fix]",
             },
@@ -329,8 +356,12 @@ class TestCellState:
             client.post(
                 f"/api/runs/{run_id}/labels",
                 json={
-                    "target": "cell", "target_id": "x", "source": "a.csv",
-                    "row": row, "column": "email", "status": "partial",
+                    "target": "cell",
+                    "target_id": "x",
+                    "source": "a.csv",
+                    "row": row,
+                    "column": "email",
+                    "status": "partial",
                     "corrected_value": f"r{row}@x",
                 },
             )
@@ -342,8 +373,12 @@ class TestCellState:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 0, "column": "email", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 0,
+                "column": "email",
+                "status": "fn",
             },
         )
         after = client.get(f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
@@ -365,8 +400,12 @@ class TestStatsFN:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
             },
         )
         s = client.get(f"/api/runs/{run_id}/stats").json()
@@ -380,15 +419,22 @@ class TestStatsFN:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 1, "column": "name", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "fn",
             },
         )
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
                 "status": "tp",
             },
         )
@@ -415,9 +461,13 @@ def test_get_source_returns_siblings_for_workbook(tmp_path: Path) -> None:
     run_dir = outputs / "20260101T000000Z_test"
     run_dir.mkdir()
     csv_paths = [str(workbook / n) for n in ("a.csv", "b.csv", "c.csv")]
-    (run_dir / "summary.json").write_text(json.dumps({
-        "config": {"csv_paths": csv_paths, "sources": ["a.csv", "b.csv", "c.csv"]},
-    }))
+    (run_dir / "summary.json").write_text(
+        json.dumps(
+            {
+                "config": {"csv_paths": csv_paths, "sources": ["a.csv", "b.csv", "c.csv"]},
+            }
+        )
+    )
     (run_dir / "clusters.json").write_text("[]")
     (run_dir / "issues.json").write_text("[]")
 
@@ -434,15 +484,21 @@ def test_get_source_returns_siblings_for_workbook(tmp_path: Path) -> None:
 
 class TestExportWithFN:
     def test_fn_cell_emits_error_record_with_empty_cluster_ids(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         client, run_id = client_and_run
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": "fn",
-                "note": "missed", "corrected_value": "b@example.com",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
+                "note": "missed",
+                "corrected_value": "b@example.com",
             },
         )
         r = client.get(f"/api/runs/{run_id}/export/benchmark")
@@ -462,7 +518,8 @@ class TestExportWithFN:
         assert rec["corrected_value"] == "b@example.com"
 
     def test_fn_cell_carries_error_types_into_benchmark(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         """A cell FN label tagged ``error_types`` exports with that tag
         (the column-board per-value inconsistency FN flow), instead of
@@ -471,17 +528,19 @@ class TestExportWithFN:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
                 "corrected_value": "b@example.com",
                 "error_types": ["inconsistency"],
             },
         )
         rows: List[Dict[str, Any]] = [
             json.loads(line)
-            for line in client.get(
-                f"/api/runs/{run_id}/export/benchmark"
-            ).text.splitlines()
+            for line in client.get(f"/api/runs/{run_id}/export/benchmark").text.splitlines()
             if line.strip()
         ]
         assert len(rows) == 1
@@ -490,27 +549,27 @@ class TestExportWithFN:
         assert rec["label"] == "error"
         assert rec["cluster_ids"] == []
         # And it lands in the inconsistency bucket of the by-type export.
-        single = client.get(
-            f"/api/runs/{run_id}/export/benchmark/inconsistency"
-        )
+        single = client.get(f"/api/runs/{run_id}/export/benchmark/inconsistency")
         assert single.status_code == 200
-        incon = [
-            json.loads(line)
-            for line in single.text.splitlines() if line.strip()
-        ]
+        incon = [json.loads(line) for line in single.text.splitlines() if line.strip()]
         assert len(incon) == 1
         assert incon[0]["row"] == 2 and incon[0]["column"] == "email"
 
     def test_fn_superseded_by_tp_cluster_is_merged_not_duplicated(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         client, run_id = client_and_run
         # FN on the same cell c1 covers ...
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 1, "column": "name", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "fn",
                 "note": "alice should be Alice",
             },
         )
@@ -518,9 +577,13 @@ class TestExportWithFN:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "status": "tp", "corrected_value": "Alice",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "tp",
+                "corrected_value": "Alice",
             },
         )
         rows = [
@@ -539,7 +602,8 @@ class TestExportWithFN:
 
 class TestSourceExportRowMap:
     def test_row_exclusion_emits_original_row_mapping(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         client, run_id = client_and_run
         response = client.post(
@@ -555,11 +619,13 @@ class TestSourceExportRowMap:
             row_map = json.loads(archive.read("_ROW_MAP.json"))
 
         assert exported == ["name,email", "alice,a@x", "carol,c@x"]
-        assert row_map["sources"] == [{
-            "source": "a.csv",
-            "path": "a.csv",
-            "exported_to_source": [0, 2],
-        }]
+        assert row_map["sources"] == [
+            {
+                "source": "a.csv",
+                "path": "a.csv",
+                "exported_to_source": [0, 2],
+            }
+        ]
 
     def test_missing_source_fails_export(self, tmp_path: Path) -> None:
         (tmp_path / "frontend" / "labeling").mkdir(parents=True)
@@ -593,18 +659,26 @@ class TestExportByErrorType:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "status": "tp", "corrected_value": "Alice",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "tp",
+                "corrected_value": "Alice",
             },
         )
         # Add an FN cell with no enclosing cluster -> uncategorized.
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x",
-                "source": "a.csv", "row": 2, "column": "email",
-                "status": "fn", "corrected_value": "c@example.com",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
+                "corrected_value": "c@example.com",
             },
         )
         r = client.get(f"/api/runs/{run_id}/export/benchmark-by-type")
@@ -613,6 +687,7 @@ class TestExportByErrorType:
 
         import io
         import zipfile
+
         zf = zipfile.ZipFile(io.BytesIO(r.content))
         names = sorted(zf.namelist())
         assert names == ["_uncategorized.jsonl", "typo.jsonl"]
@@ -656,9 +731,13 @@ class TestExportSingleErrorType:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "status": "tp", "corrected_value": "Alice",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "tp",
+                "corrected_value": "Alice",
             },
         )
         r = client.get(f"/api/runs/{run_id}/export/benchmark/typo")
@@ -677,9 +756,13 @@ class TestExportSingleErrorType:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "status": "tp", "corrected_value": "Alice",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "status": "tp",
+                "corrected_value": "Alice",
             },
         )
         # Both "typo.jsonl" and "Typo" should resolve to the same bucket
@@ -693,7 +776,8 @@ class TestExportSingleErrorType:
             assert r.text.strip()
 
     def test_unknown_type_returns_404_with_available_list(
-        self, client_and_run,
+        self,
+        client_and_run,
     ) -> None:
         client, run_id = client_and_run
         # Label a typo-cluster so the run has at least ONE bucket;
@@ -701,14 +785,15 @@ class TestExportSingleErrorType:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
                 "status": "tp",
             },
         )
-        r = client.get(
-            f"/api/runs/{run_id}/export/benchmark/numeric_outlier"
-        )
+        r = client.get(f"/api/runs/{run_id}/export/benchmark/numeric_outlier")
         assert r.status_code == 404
         body = r.json()
         # FastAPI nests the structured detail under ``detail``.
@@ -737,14 +822,16 @@ class TestSourceCoverage:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
                 "status": "tp",
             },
         )
         meta = next(
-            s for s in client.get(f"/api/runs/{run_id}").json()["sources"]
-            if s["name"] == "a.csv"
+            s for s in client.get(f"/api/runs/{run_id}").json()["sources"] if s["name"] == "a.csv"
         )
         assert meta["checked"] is True
         assert meta["labelled_clusters"] == 1
@@ -755,13 +842,16 @@ class TestSourceCoverage:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cell", "target_id": "x", "source": "a.csv",
-                "row": 2, "column": "email", "status": "fn",
+                "target": "cell",
+                "target_id": "x",
+                "source": "a.csv",
+                "row": 2,
+                "column": "email",
+                "status": "fn",
             },
         )
         meta = next(
-            s for s in client.get(f"/api/runs/{run_id}").json()["sources"]
-            if s["name"] == "a.csv"
+            s for s in client.get(f"/api/runs/{run_id}").json()["sources"] if s["name"] == "a.csv"
         )
         assert meta["checked"] is True
         assert meta["labelled_clusters"] == 0
@@ -783,19 +873,33 @@ class TestSourceCoverage:
         out = project / "outputs" / "20260101T000000Z_test"
         out.mkdir(parents=True)
         csv_paths = [str(data / "untouched.csv"), str(data / "flagged.csv")]
-        (out / "summary.json").write_text(json.dumps({
-            "config": {"csv_paths": csv_paths,
-                       "sources": ["untouched.csv", "flagged.csv"]},
-        }))
+        (out / "summary.json").write_text(
+            json.dumps(
+                {
+                    "config": {"csv_paths": csv_paths, "sources": ["untouched.csv", "flagged.csv"]},
+                }
+            )
+        )
         # Only flagged.csv has a cluster; untouched.csv has none.
-        (out / "clusters.json").write_text(json.dumps([{
-            "cluster_id": "c1", "source": "flagged.csv",
-            "row": 0, "columns": ["col"], "error_types": ["typo"],
-            "evidence_count": 1, "synthesis": None,
-        }]))
+        (out / "clusters.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "cluster_id": "c1",
+                        "source": "flagged.csv",
+                        "row": 0,
+                        "columns": ["col"],
+                        "error_types": ["typo"],
+                        "evidence_count": 1,
+                        "synthesis": None,
+                    }
+                ]
+            )
+        )
         (out / "issues.json").write_text("[]")
 
         from src.labeling.app import create_app
+
         client = TestClient(create_app(project, annotator="t"))
         run = client.get(f"/api/runs/{out.name}").json()
         names = [s["name"] for s in run["sources"]]
@@ -807,24 +911,27 @@ class TestSourceCoverage:
         # The unflagged CSV is browsable for FN labelling.
         slice_ = client.get(f"/api/runs/{out.name}/sources/untouched.csv").json()
         assert slice_["total_rows"] == 2
-        cells = client.get(
-            f"/api/runs/{out.name}/sources/untouched.csv/cells"
-        ).json()
+        cells = client.get(f"/api/runs/{out.name}/sources/untouched.csv/cells").json()
         assert cells["cells"] == []
 
         # And FN labelling on it works end-to-end.
         r = client.post(
             f"/api/runs/{out.name}/labels",
             json={
-                "target": "cell", "target_id": "x",
-                "source": "untouched.csv", "row": 1, "column": "col",
-                "status": "fn", "note": "should be Bar",
+                "target": "cell",
+                "target_id": "x",
+                "source": "untouched.csv",
+                "row": 1,
+                "column": "col",
+                "status": "fn",
+                "note": "should be Bar",
             },
         )
         assert r.status_code == 200
         # ``checked`` flips after the FN.
         meta = next(
-            s for s in client.get(f"/api/runs/{out.name}").json()["sources"]
+            s
+            for s in client.get(f"/api/runs/{out.name}").json()["sources"]
             if s["name"] == "untouched.csv"
         )
         assert meta["checked"] is True
@@ -852,7 +959,8 @@ class TestExportConflictsEndpoint:
         data_dir = project / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
         (data_dir / "a.csv").write_text(
-            "fruit\nApple\nApple\nApple\nBanana\n", encoding="utf-8",
+            "fruit\nApple\nApple\nApple\nBanana\n",
+            encoding="utf-8",
         )
 
         run_dir = project / "outputs" / "20260101T000001Z_conflicts"
@@ -866,23 +974,35 @@ class TestExportConflictsEndpoint:
         (run_dir / "summary.json").write_text(json.dumps(summary))
         clusters = [
             {
-                "cluster_id": "c-row0", "source": "a.csv", "row": 0,
-                "columns": ["fruit"], "error_types": ["typo"],
+                "cluster_id": "c-row0",
+                "source": "a.csv",
+                "row": 0,
+                "columns": ["fruit"],
+                "error_types": ["typo"],
                 "row_values": {"fruit": "Apple"},
             },
             {
-                "cluster_id": "c-row1", "source": "a.csv", "row": 1,
-                "columns": ["fruit"], "error_types": ["typo"],
+                "cluster_id": "c-row1",
+                "source": "a.csv",
+                "row": 1,
+                "columns": ["fruit"],
+                "error_types": ["typo"],
                 "row_values": {"fruit": "Apple"},
             },
             {
-                "cluster_id": "c-row2", "source": "a.csv", "row": 2,
-                "columns": ["fruit"], "error_types": ["typo"],
+                "cluster_id": "c-row2",
+                "source": "a.csv",
+                "row": 2,
+                "columns": ["fruit"],
+                "error_types": ["typo"],
                 "row_values": {"fruit": "Apple"},
             },
             {
-                "cluster_id": "c-row3", "source": "a.csv", "row": 3,
-                "columns": ["fruit"], "error_types": ["typo"],
+                "cluster_id": "c-row3",
+                "source": "a.csv",
+                "row": 3,
+                "columns": ["fruit"],
+                "error_types": ["typo"],
                 "row_values": {"fruit": "Banana"},
             },
         ]
@@ -906,7 +1026,8 @@ class TestExportConflictsEndpoint:
         assert r.json() == {"conflicts": []}
 
     def test_same_value_different_labels_surface_as_conflict(
-        self, conflict_client,
+        self,
+        conflict_client,
     ) -> None:
         client, run_id = conflict_client
         # Row 0 "Apple" -> clean, row 1 "Apple" -> error: classic
@@ -915,17 +1036,24 @@ class TestExportConflictsEndpoint:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c-row0",
-                "source": "a.csv", "row": 0, "column": "fruit",
+                "target": "cluster",
+                "target_id": "c-row0",
+                "source": "a.csv",
+                "row": 0,
+                "column": "fruit",
                 "status": "fp",
             },
         )
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c-row1",
-                "source": "a.csv", "row": 1, "column": "fruit",
-                "status": "tp", "corrected_value": "Apples",
+                "target": "cluster",
+                "target_id": "c-row1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "fruit",
+                "status": "tp",
+                "corrected_value": "Apples",
             },
         )
         # Row 2 left unlabelled (no benchmark cell emitted), row 3
@@ -946,7 +1074,8 @@ class TestExportConflictsEndpoint:
             assert c["cluster_ids"]
 
     def test_consistent_labels_do_not_trigger_a_conflict(
-        self, conflict_client,
+        self,
+        conflict_client,
     ) -> None:
         client, run_id = conflict_client
         # All three "Apple" rows agree -> no conflict on the triple.
@@ -954,8 +1083,11 @@ class TestExportConflictsEndpoint:
             client.post(
                 f"/api/runs/{run_id}/labels",
                 json={
-                    "target": "cluster", "target_id": cid,
-                    "source": "a.csv", "row": row, "column": "fruit",
+                    "target": "cluster",
+                    "target_id": cid,
+                    "source": "a.csv",
+                    "row": row,
+                    "column": "fruit",
                     "status": "fp",
                 },
             )
@@ -964,7 +1096,8 @@ class TestExportConflictsEndpoint:
         assert r.json() == {"conflicts": []}
 
     def test_exclusions_remove_cells_from_conflict_set(
-        self, conflict_client,
+        self,
+        conflict_client,
     ) -> None:
         client, run_id = conflict_client
         # Build a conflict, then exclude the row that triggered it -
@@ -973,32 +1106,35 @@ class TestExportConflictsEndpoint:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c-row0",
-                "source": "a.csv", "row": 0, "column": "fruit",
+                "target": "cluster",
+                "target_id": "c-row0",
+                "source": "a.csv",
+                "row": 0,
+                "column": "fruit",
                 "status": "fp",
             },
         )
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c-row1",
-                "source": "a.csv", "row": 1, "column": "fruit",
-                "status": "tp", "corrected_value": "Apples",
+                "target": "cluster",
+                "target_id": "c-row1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "fruit",
+                "status": "tp",
+                "corrected_value": "Apples",
             },
         )
         # Sanity-check the conflict exists before exclusion.
-        assert client.get(
-            f"/api/runs/{run_id}/export/conflicts"
-        ).json()["conflicts"]
+        assert client.get(f"/api/runs/{run_id}/export/conflicts").json()["conflicts"]
         # Exclude row 1 (the "error" half).
         r = client.post(
             f"/api/runs/{run_id}/exclusions",
             json={"source": "a.csv", "scope": "rows", "rows": [1]},
         )
         assert r.status_code == 200, r.text
-        assert client.get(
-            f"/api/runs/{run_id}/export/conflicts"
-        ).json()["conflicts"] == []
+        assert client.get(f"/api/runs/{run_id}/export/conflicts").json()["conflicts"] == []
 
 
 def test_cell_state_fans_out_affected_rows(tmp_path: Path) -> None:
@@ -1012,40 +1148,60 @@ def test_cell_state_fans_out_affected_rows(tmp_path: Path) -> None:
     data_dir = project / "data"
     data_dir.mkdir(parents=True)
     (data_dir / "a.csv").write_text(
-        "name\nalice\nbob\ncarol\ndave\n", encoding="utf-8",
+        "name\nalice\nbob\ncarol\ndave\n",
+        encoding="utf-8",
     )
     outputs = project / "outputs"
     outputs.mkdir()
     run_id = "20260101T000000Z_fanout"
     rd = outputs / run_id
     rd.mkdir()
-    (rd / "summary.json").write_text(json.dumps(
-        {"config": {"csv_paths": [str(data_dir / "a.csv")],
-                    "sources": ["a.csv"]}}))
+    (rd / "summary.json").write_text(
+        json.dumps({"config": {"csv_paths": [str(data_dir / "a.csv")], "sources": ["a.csv"]}})
+    )
     clusters = [
         # Broad cluster anchored at row 0, fanning out to rows 0,1,2,3.
-        {"cluster_id": "broad", "source": "a.csv", "row": 0,
-         "columns": ["name"], "error_types": ["typo"], "synthesis": None,
-         "detections": [{"affected_rows": [0, 1, 2, 3], "columns": ["name"]}]},
+        {
+            "cluster_id": "broad",
+            "source": "a.csv",
+            "row": 0,
+            "columns": ["name"],
+            "error_types": ["typo"],
+            "synthesis": None,
+            "detections": [{"affected_rows": [0, 1, 2, 3], "columns": ["name"]}],
+        },
         # A per-row cluster anchored at row 2 (operator will FP it).
-        {"cluster_id": "row2", "source": "a.csv", "row": 2,
-         "columns": ["name"], "error_types": ["typo"], "synthesis": None,
-         "detections": [{"affected_rows": [2], "columns": ["name"]}]},
+        {
+            "cluster_id": "row2",
+            "source": "a.csv",
+            "row": 2,
+            "columns": ["name"],
+            "error_types": ["typo"],
+            "synthesis": None,
+            "detections": [{"affected_rows": [2], "columns": ["name"]}],
+        },
     ]
     (rd / "clusters.json").write_text(json.dumps(clusters))
     (rd / "issues.json").write_text("[]")
 
     client = TestClient(create_app(project, annotator="tester"))
     for cid, row, st in (("broad", 0, "tp"), ("row2", 2, "fp")):
-        r = client.post(f"/api/runs/{run_id}/labels", json={
-            "target": "cluster", "target_id": cid, "source": "a.csv",
-            "row": row, "column": "name", "status": st})
+        r = client.post(
+            f"/api/runs/{run_id}/labels",
+            json={
+                "target": "cluster",
+                "target_id": cid,
+                "source": "a.csv",
+                "row": row,
+                "column": "name",
+                "status": st,
+            },
+        )
         assert r.status_code == 200, r.text
 
     cells = {
         c["row"]: c["state"]
-        for c in client.get(
-            f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
+        for c in client.get(f"/api/runs/{run_id}/sources/a.csv/cells").json()["cells"]
         if c["column"] == "name"
     }
     # Fan-out paints the peer rows tp ...

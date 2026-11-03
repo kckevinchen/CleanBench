@@ -39,8 +39,12 @@ def test_active_overrides_drops_unlabeled_tombstone(tmp_path: Path) -> None:
 
 def test_key_is_source_row_column(tmp_path: Path) -> None:
     s = RowVerdictStore(tmp_path / "row_verdicts.jsonl")
-    s.upsert(RowVerdictIn(source="a.csv", row=3, column="state", status=LabelStatus.FP), annotator="t")
-    s.upsert(RowVerdictIn(source="a.csv", row=3, column="zip", status=LabelStatus.TP), annotator="t")
+    s.upsert(
+        RowVerdictIn(source="a.csv", row=3, column="state", status=LabelStatus.FP), annotator="t"
+    )
+    s.upsert(
+        RowVerdictIn(source="a.csv", row=3, column="zip", status=LabelStatus.TP), annotator="t"
+    )
     ov = s.active_overrides()
     assert ov[("a.csv", 3, "state")].status == LabelStatus.FP
     assert ov[("a.csv", 3, "zip")].status == LabelStatus.TP

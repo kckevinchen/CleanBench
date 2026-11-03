@@ -38,7 +38,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
     _mt_label_lock = threading.Lock()
 
     def _mt_label_store(run_id: str) -> MultiTableLabelStore:
-        rd = cache._safe_run_dir(run_id)
+        rd = router_ctx.safe_run_dir(run_id)
         if not rd.is_dir():
             raise HTTPException(404, f"run not found: {run_id}")
         with _mt_label_lock:

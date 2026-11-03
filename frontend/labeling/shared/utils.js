@@ -39,9 +39,11 @@ export function escapeHtml(s) {
  * returns a large HTML error page.
  */
 export async function api(path, options = {}) {
+  const headers = new Headers(options.headers);
+  if (!headers.has("content-type")) headers.set("content-type", "application/json");
   const res = await fetch(path, {
-    headers: { "content-type": "application/json", ...(options.headers || {}) },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -49,14 +51,15 @@ export async function api(path, options = {}) {
     try {
       const parsed = JSON.parse(body);
       if (parsed && typeof parsed === "object" && parsed.detail) {
-        detail = typeof parsed.detail === "string"
-          ? parsed.detail
-          : JSON.stringify(parsed.detail);
+        detail = Array.isArray(parsed.detail)
+          ? parsed.detail.map((item) => `${(item.loc || []).filter((key) => key !== "body").join(".")}: ${item.msg || "Invalid value"}`).join("; ")
+          : typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed.detail);
       }
     } catch (_) {
       // body wasn't JSON; fall back to the truncated text we already have.
     }
-    throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    throw new Error(`${res.status} ${res.statusText}: ${detail.slice(0, 400)}`);
   }
+  if (res.status === 204) return null;
   return res.json();
 }

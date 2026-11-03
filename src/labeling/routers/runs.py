@@ -171,9 +171,7 @@ def _render_xlsx_preview_html(
     parts.append("<nav class='tabs'>")
     for i, sn in enumerate(sheet_names):
         cls = "active" if i == 0 else ""
-        parts.append(
-            f"<button type='button' class='{cls}' " f"data-sheet='sheet-{i}'>{h(sn)}</button>"
-        )
+        parts.append(f"<button type='button' class='{cls}' data-sheet='sheet-{i}'>{h(sn)}</button>")
     parts.append("</nav>")
     if truncated_sheets:
         parts.append(
@@ -593,6 +591,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         return {
             "run_id": run_id,
             "run_dir": str(ctx.run_dir),
+            "has_report": (ctx.run_dir / "report.html").is_file(),
             "annotator": annotator,
             "dataset": dataset_label_from_config((ctx.summary or {}).get("config") or {}),
             "summary": ctx.summary,
@@ -678,7 +677,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
             )
         return FileResponse(
             path,
-            media_type=("application/vnd.openxmlformats-officedocument." "spreadsheetml.sheet"),
+            media_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
             filename=workbook,
         )
 

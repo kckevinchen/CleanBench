@@ -94,8 +94,22 @@ scripts/             Start, stop, restart, and check the annotation server
 tests/               Store, API, export, import, and scoring checks
 ```
 
-After installing `requirements.txt`, run `python -m pytest -q` for the offline
-tests.
+The HTTP app composes routers with import/export services and a bounded run
+cache. Stores preserve append-only human histories; per-run file locks coordinate
+read/write operations and export snapshots. Each download streams its own copy,
+so another export cannot overwrite a response in progress.
+
+After installing `requirements.txt`, run the local checks:
+
+```bash
+python -m pytest -q
+python -m ruff check src tests
+python -m ruff format --check src tests
+```
+
+Tests cover history recovery, independent writers, input validation, concurrent
+exports, and server lifecycle operations. Node 18+ enables the optional JavaScript
+checks; Python-only installations skip those checks.
 
 ## License
 

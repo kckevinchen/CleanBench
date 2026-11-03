@@ -36,7 +36,8 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_test") -> Path:
         encoding="utf-8",
     )
     (data_dir / "b.csv").write_text(
-        "name,email\nemma,e@x\nfrank,f@x\n", encoding="utf-8",
+        "name,email\nemma,e@x\nfrank,f@x\n",
+        encoding="utf-8",
     )
 
     outputs = project / "outputs"
@@ -56,24 +57,40 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_test") -> Path:
     (run_dir / "summary.json").write_text(json.dumps(summary))
     clusters = [
         {
-            "cluster_id": "c1", "source": "a.csv", "row": 1,
-            "columns": ["name"], "error_types": ["typo"],
-            "evidence_count": 1, "synthesis": None,
+            "cluster_id": "c1",
+            "source": "a.csv",
+            "row": 1,
+            "columns": ["name"],
+            "error_types": ["typo"],
+            "evidence_count": 1,
+            "synthesis": None,
         },
         {
-            "cluster_id": "c2", "source": "a.csv", "row": 2,
-            "columns": ["email"], "error_types": ["typo"],
-            "evidence_count": 1, "synthesis": None,
+            "cluster_id": "c2",
+            "source": "a.csv",
+            "row": 2,
+            "columns": ["email"],
+            "error_types": ["typo"],
+            "evidence_count": 1,
+            "synthesis": None,
         },
         {
-            "cluster_id": "c3", "source": "a.csv", "row": 3,
-            "columns": ["name"], "error_types": ["typo"],
-            "evidence_count": 1, "synthesis": None,
+            "cluster_id": "c3",
+            "source": "a.csv",
+            "row": 3,
+            "columns": ["name"],
+            "error_types": ["typo"],
+            "evidence_count": 1,
+            "synthesis": None,
         },
         {
-            "cluster_id": "c4", "source": "b.csv", "row": 0,
-            "columns": ["name"], "error_types": ["typo"],
-            "evidence_count": 1, "synthesis": None,
+            "cluster_id": "c4",
+            "source": "b.csv",
+            "row": 0,
+            "columns": ["name"],
+            "error_types": ["typo"],
+            "evidence_count": 1,
+            "synthesis": None,
         },
     ]
     (run_dir / "clusters.json").write_text(json.dumps(clusters))
@@ -132,8 +149,8 @@ class TestExclusionCascade:
         assert r.status_code == 200, r.text
         assert _label_status(client, run_id, "c1") == "skip"  # row=1
         assert _label_status(client, run_id, "c2") == "skip"  # row=2
-        assert _label_status(client, run_id, "c3") is None    # row=3
-        assert _label_status(client, run_id, "c4") is None    # b.csv
+        assert _label_status(client, run_id, "c3") is None  # row=3
+        assert _label_status(client, run_id, "c4") is None  # b.csv
 
     def test_csv_exclusion_skips_every_cluster_in_source(self, client_and_run):
         client, run_id = client_and_run
@@ -155,9 +172,13 @@ class TestExclusionCascade:
         r = client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "columns": ["name"], "status": "tp",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "columns": ["name"],
+                "status": "tp",
             },
         )
         assert r.status_code == 200, r.text
@@ -179,7 +200,7 @@ class TestExclusionCascade:
             json={"scope": "columns", "source": "a.csv", "columns": ["name"]},
         )
         before = client.get(f"/api/runs/{run_id}/labels").json()
-        before_count = (before.get("history_count") or 0)
+        before_count = before.get("history_count") or 0
         # Same scope, fresh exclusion -> targets are already skip, so
         # no new labels should be appended.
         client.post(
@@ -222,9 +243,13 @@ class TestExclusionCascade:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "cluster", "target_id": "c1",
-                "source": "a.csv", "row": 1, "column": "name",
-                "columns": ["name"], "status": "tp",
+                "target": "cluster",
+                "target_id": "c1",
+                "source": "a.csv",
+                "row": 1,
+                "column": "name",
+                "columns": ["name"],
+                "status": "tp",
             },
         )
         assert _label_status(client, run_id, "c1") == "tp"
@@ -241,7 +266,8 @@ class TestExclusionCascade:
         r = client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "b.csv",
+                "scope": "columns",
+                "source": "b.csv",
                 "columns": ["email"],
             },
         )
@@ -258,7 +284,8 @@ class TestExclusionCascade:
 
 
 def _make_run_with_column_clusters(
-    project: Path, run_id: str = "20260101T000000Z_cctest",
+    project: Path,
+    run_id: str = "20260101T000000Z_cctest",
 ) -> Path:
     """Run dir wired up so both saved column-cluster records *and* LLM
     drafts are present.
@@ -275,8 +302,12 @@ def _make_run_with_column_clusters(
     cascade must work even when no cell-clusters exist.
     """
     from src.labeling.schema import (
-        ClusterKind, ClusterValue, ColumnClusters, ColumnLabelStatus,
-        StdCluster, column_cluster_target_id,
+        ClusterKind,
+        ClusterValue,
+        ColumnClusters,
+        ColumnLabelStatus,
+        StdCluster,
+        column_cluster_target_id,
     )
 
     data_dir = project / "data"
@@ -286,7 +317,8 @@ def _make_run_with_column_clusters(
         encoding="utf-8",
     )
     (data_dir / "b.csv").write_text(
-        "name,email\nemma,e@x\nEmma,e@x\n", encoding="utf-8",
+        "name,email\nemma,e@x\nEmma,e@x\n",
+        encoding="utf-8",
     )
 
     outputs = project / "outputs"
@@ -309,11 +341,13 @@ def _make_run_with_column_clusters(
 
     # Saved column-cluster record on a.csv / name (two clusters).
     rec = ColumnClusters(
-        source="a.csv", column="name",
+        source="a.csv",
+        column="name",
         status=ColumnLabelStatus.LABELED,
         clusters=[
             StdCluster(
-                cluster_id="c1", kind=ClusterKind.UNTAGGED,
+                cluster_id="c1",
+                kind=ClusterKind.UNTAGGED,
                 canonical_value="alice",
                 values=[
                     ClusterValue(value="alice", count=2),
@@ -321,7 +355,8 @@ def _make_run_with_column_clusters(
                 ],
             ),
             StdCluster(
-                cluster_id="c2", kind=ClusterKind.UNTAGGED,
+                cluster_id="c2",
+                kind=ClusterKind.UNTAGGED,
                 canonical_value="bob",
                 values=[
                     ClusterValue(value="bob", count=2),
@@ -332,27 +367,40 @@ def _make_run_with_column_clusters(
         annotator="tester",
     )
     (run_dir / "column_clusters.jsonl").write_text(
-        rec.model_dump_json() + "\n", encoding="utf-8",
+        rec.model_dump_json() + "\n",
+        encoding="utf-8",
     )
 
     # LLM drafts: one on a.csv / email (a column with no saved record)
     # and one on b.csv / name. Both columns become queue items.
     drafts = [
         {
-            "source": "a.csv", "column": "email",
-            "runs_completed": 1, "stopped_reason": "two_consecutive",
-            "draft_clusters": [{
-                "values": ["a@x", "A@X"], "kind": "untagged",
-                "canonical": "a@x", "agreement": 0.5,
-            }],
+            "source": "a.csv",
+            "column": "email",
+            "runs_completed": 1,
+            "stopped_reason": "two_consecutive",
+            "draft_clusters": [
+                {
+                    "values": ["a@x", "A@X"],
+                    "kind": "untagged",
+                    "canonical": "a@x",
+                    "agreement": 0.5,
+                }
+            ],
         },
         {
-            "source": "b.csv", "column": "name",
-            "runs_completed": 1, "stopped_reason": "two_consecutive",
-            "draft_clusters": [{
-                "values": ["emma", "Emma"], "kind": "untagged",
-                "canonical": "emma", "agreement": 0.5,
-            }],
+            "source": "b.csv",
+            "column": "name",
+            "runs_completed": 1,
+            "stopped_reason": "two_consecutive",
+            "draft_clusters": [
+                {
+                    "values": ["emma", "Emma"],
+                    "kind": "untagged",
+                    "canonical": "emma",
+                    "agreement": 0.5,
+                }
+            ],
         },
     ]
     (run_dir / "column_cluster_drafts.jsonl").write_text(
@@ -378,8 +426,12 @@ def cc_client_and_run():
         run_dir = _make_run_with_column_clusters(project)
         app = create_app(project, annotator="tester")
         client = TestClient(app)
-        yield client, run_dir.name, (
-            _make_run_with_column_clusters.targets  # type: ignore[attr-defined]
+        yield (
+            client,
+            run_dir.name,
+            (
+                _make_run_with_column_clusters.targets  # type: ignore[attr-defined]
+            ),
         )
 
 
@@ -390,7 +442,8 @@ class TestColumnClusterCascade:
     column-clusters (which span the whole column)."""
 
     def test_csv_exclusion_skips_every_column_cluster_in_source(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         client, run_id, targets = cc_client_and_run
         r = client.post(
@@ -406,13 +459,15 @@ class TestColumnClusterCascade:
         assert _label_status(client, run_id, targets["b_name_d1"]) is None
 
     def test_columns_exclusion_skips_matching_column_clusters(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         client, run_id, targets = cc_client_and_run
         r = client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
@@ -426,7 +481,8 @@ class TestColumnClusterCascade:
         assert _label_status(client, run_id, targets["b_name_d1"]) is None
 
     def test_rows_exclusion_does_not_skip_column_clusters(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """ROWS-scope is per-cell; column-clusters span the whole
         column, so a ROWS exclusion must not touch them."""
@@ -438,12 +494,16 @@ class TestColumnClusterCascade:
         assert r.status_code == 200, r.text
         # None of the column-cluster targets should be touched.
         for k in (
-            "a_name_c1", "a_name_c2", "a_email_d1", "b_name_d1",
+            "a_name_c1",
+            "a_name_c2",
+            "a_email_d1",
+            "b_name_d1",
         ):
             assert _label_status(client, run_id, targets[k]) is None, k
 
     def test_cascade_overrides_prior_column_cluster_verdict(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """Prior TP / FP / partial on a column-cluster must lose to the
         later exclusion -> skip cascade."""
@@ -454,8 +514,10 @@ class TestColumnClusterCascade:
             json={
                 "target": "column_cluster",
                 "target_id": targets["a_name_c1"],
-                "source": "a.csv", "column": "name",
-                "columns": ["name"], "status": "tp",
+                "source": "a.csv",
+                "column": "name",
+                "columns": ["name"],
+                "status": "tp",
             },
         )
         assert r.status_code == 200, r.text
@@ -464,14 +526,16 @@ class TestColumnClusterCascade:
         client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
         assert _label_status(client, run_id, targets["a_name_c1"]) == "skip"
 
     def test_cascade_is_idempotent_on_column_clusters(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """Re-issuing the same exclusion should not duplicate the skip
         label on a column-cluster already at skip."""
@@ -479,7 +543,8 @@ class TestColumnClusterCascade:
         client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
@@ -489,7 +554,8 @@ class TestColumnClusterCascade:
         client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
@@ -497,7 +563,8 @@ class TestColumnClusterCascade:
         assert (after.get("history_count") or 0) == before_count
 
     def test_delete_reverts_column_cluster_auto_skip(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """Removing the exclusion should also revert column-cluster
         auto-skips via UNLABELED tombstones."""
@@ -505,7 +572,8 @@ class TestColumnClusterCascade:
         r = client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
@@ -521,7 +589,8 @@ class TestColumnClusterCascade:
         assert _label_status(client, run_id, targets["a_name_c2"]) is None
 
     def test_delete_preserves_manual_column_cluster_relabel(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """If the operator manually relabels a column-cluster AFTER the
         auto-skip, deleting the exclusion must NOT revert that manual
@@ -530,7 +599,8 @@ class TestColumnClusterCascade:
         r = client.post(
             f"/api/runs/{run_id}/exclusions",
             json={
-                "scope": "columns", "source": "a.csv",
+                "scope": "columns",
+                "source": "a.csv",
                 "columns": ["name"],
             },
         )
@@ -541,8 +611,10 @@ class TestColumnClusterCascade:
             json={
                 "target": "column_cluster",
                 "target_id": targets["a_name_c1"],
-                "source": "a.csv", "column": "name",
-                "columns": ["name"], "status": "tp",
+                "source": "a.csv",
+                "column": "name",
+                "columns": ["name"],
+                "status": "tp",
             },
         )
         assert _label_status(client, run_id, targets["a_name_c1"]) == "tp"

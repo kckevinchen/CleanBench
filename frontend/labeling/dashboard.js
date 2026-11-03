@@ -2,9 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 async function loadRuns() {
   try {
-    const response = await fetch('/api/runs');
-    if (!response.ok) throw new Error('Could not load runs');
-    const payload = await response.json();
+    const payload = await api('/api/runs');
     $('workspace').textContent = `Workspace: ${payload.project_root}`;
     $('runs').replaceChildren();
     for (const run of payload.runs) {
@@ -41,12 +39,10 @@ $('import-form').addEventListener('submit', async (event) => {
     if ($('candidates').files.length) {
       candidates = (await $('candidates').files[0].text()).split(/\r?\n/).filter((line) => line.trim()).map(JSON.parse);
     }
-    const response = await fetch('/api/import', {
+    const result = await api('/api/import', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ run_id: $('run-id').value, sources, candidates }),
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail));
     location.href = `./label.html?run=${encodeURIComponent(result.run_id)}`;
   } catch (error) {
     $('message').textContent = error.message;
@@ -55,3 +51,4 @@ $('import-form').addEventListener('submit', async (event) => {
 });
 $('refresh').addEventListener('click', loadRuns);
 loadRuns();
+import { api } from "./shared/utils.js";

@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from ..app import RunContext
+    from ..run_context import RunContext
 
 import logging
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
@@ -451,7 +451,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         filtered = passthrough + grouped_reps
         if grouped_count:
             logger.debug(
-                "queue-group: collapsed %d fanned same-value cluster(s) on " "run=%s",
+                "queue-group: collapsed %d fanned same-value cluster(s) on run=%s",
                 grouped_count,
                 run_id,
             )
@@ -639,7 +639,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
             cached_suggestions = []
         except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "get_cluster_corrections cache-replay failed for " "run=%s cluster=%s: %s",
+                "get_cluster_corrections cache-replay failed for run=%s cluster=%s: %s",
                 run_id,
                 cluster_id,
                 exc,

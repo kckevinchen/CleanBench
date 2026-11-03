@@ -26,7 +26,6 @@ from src.labeling.numeric_format import (
     reformat_to_style,
 )
 
-
 # ------------------------------------------------------ style classification
 
 
@@ -70,8 +69,8 @@ def test_has_observable_style_below_1000_is_neutral() -> None:
 
 
 def test_has_observable_style_decimal_uses_integer_part() -> None:
-    assert has_observable_style("999.99") is False   # int part 3 digits
-    assert has_observable_style("1234.5") is True     # int part 4 digits
+    assert has_observable_style("999.99") is False  # int part 3 digits
+    assert has_observable_style("1234.5") is True  # int part 4 digits
 
 
 # ------------------------------------------------------ reformatting
@@ -134,8 +133,7 @@ def _scan(values):
 
 
 def test_scan_flags_grouped_minority_in_plain_column() -> None:
-    values = ["383481", "400262", "369435", "429452", "299884",
-              "328,670", "291132", "300000"]
+    values = ["383481", "400262", "369435", "429452", "299884", "328,670", "291132", "300000"]
     majority, corrections = _scan(values)
     assert majority is not None and majority[0] == "plain"
     assert len(corrections) == 1

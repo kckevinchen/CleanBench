@@ -19,8 +19,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.labeling.app import create_app
-from src.labeling.schema import ColumnLabelStatus
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -32,16 +30,16 @@ SMOKE_RUN_ID = "20260101T000000Z_cctest"
 
 def _build_smoke_csv(path: Path) -> None:
     rows = [
-        {"School": "BBB",    "State": "CA"},
-        {"School": "BBB",    "State": "CA"},
-        {"School": "BBB",    "State": "CA"},
-        {"School": "BBB",    "State": "CA"},
+        {"School": "BBB", "State": "CA"},
+        {"School": "BBB", "State": "CA"},
+        {"School": "BBB", "State": "CA"},
+        {"School": "BBB", "State": "CA"},
         {"School": "ABC HS", "State": "CA"},
         {"School": "ABC HS", "State": "CA"},
-        {"School": "EEE",    "State": "Calif."},
-        {"School": "EEE",    "State": "Calif."},
-        {"School": "DDD",    "State": "Cali"},
-        {"School": "BBB",    "State": "CA"},
+        {"School": "EEE", "State": "Calif."},
+        {"School": "EEE", "State": "Calif."},
+        {"School": "DDD", "State": "Cali"},
+        {"School": "BBB", "State": "CA"},
     ]
     pd.DataFrame(rows).to_csv(path, index=False)
 
@@ -171,9 +169,7 @@ class TestInconsistencyColumns:
 class TestColumnValues:
     def test_returns_value_counts(self, client_project) -> None:
         client, _, run_id = client_project
-        r = client.get(
-            f"/api/runs/{run_id}/columns/smoke.csv/School/values"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/smoke.csv/School/values")
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["source"] == "smoke.csv"
@@ -189,16 +185,12 @@ class TestColumnValues:
 
     def test_missing_source_404(self, client_project) -> None:
         client, _, run_id = client_project
-        r = client.get(
-            f"/api/runs/{run_id}/columns/nope.csv/School/values"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/nope.csv/School/values")
         assert r.status_code == 404
 
     def test_missing_column_404(self, client_project) -> None:
         client, _, run_id = client_project
-        r = client.get(
-            f"/api/runs/{run_id}/columns/smoke.csv/NoSuchCol/values"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/smoke.csv/NoSuchCol/values")
         assert r.status_code == 404
 
 
@@ -237,9 +229,7 @@ class TestPostColumnClusters:
 
     def test_post_and_get_round_trip(self, client_project) -> None:
         client, _, run_id = client_project
-        r = client.get(
-            f"/api/runs/{run_id}/columns/smoke.csv/School/clusters"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/smoke.csv/School/clusters")
         assert r.status_code == 200
         assert r.json()["record"] is None
         # POST.
@@ -256,9 +246,7 @@ class TestPostColumnClusters:
         assert rec["annotator"] == "reviewer"
         assert len(rec["clusters"]) == 2
         # Subsequent GET sees the record.
-        r = client.get(
-            f"/api/runs/{run_id}/columns/smoke.csv/School/clusters"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/smoke.csv/School/clusters")
         assert r.status_code == 200
         body = r.json()
         assert body["record"] is not None
@@ -279,9 +267,7 @@ class TestPostColumnClusters:
             json=p2,
         )
         assert r.status_code == 200, r.text
-        r = client.get(
-            f"/api/runs/{run_id}/columns/smoke.csv/School/clusters"
-        )
+        r = client.get(f"/api/runs/{run_id}/columns/smoke.csv/School/clusters")
         body = r.json()
         assert body["record"]["note"] == "second pass"
         assert len(body["history"]) == 2
@@ -290,9 +276,7 @@ class TestPostColumnClusters:
         client, _, run_id = client_project
         payload = self._valid_payload()
         # Insert a value that's not in the column.
-        payload["clusters"][0]["values"].append(
-            {"value": "GHOST", "count": 1}
-        )
+        payload["clusters"][0]["values"].append({"value": "GHOST", "count": 1})
         r = client.post(
             f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
             json=payload,
@@ -304,8 +288,8 @@ class TestPostColumnClusters:
         """If frontend sends mismatched source/column in body, path wins."""
         client, _, run_id = client_project
         payload = self._valid_payload()
-        payload["source"] = "x.csv"        # mismatch
-        payload["column"] = "Y"            # mismatch
+        payload["source"] = "x.csv"  # mismatch
+        payload["column"] = "Y"  # mismatch
         r = client.post(
             f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
             json=payload,
@@ -371,21 +355,25 @@ class TestColumnClusterStats:
         client.post(
             f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
             json={
-                "source": "smoke.csv", "column": "School",
+                "source": "smoke.csv",
+                "column": "School",
                 "status": "labeled",
-                "clusters": [{
-                    "cluster_id": "c1",
-                    "values": [
-                        {"value": "BBB", "count": 5},
-                        {"value": "ABC HS", "count": 2},
-                    ],
-                }],
+                "clusters": [
+                    {
+                        "cluster_id": "c1",
+                        "values": [
+                            {"value": "BBB", "count": 5},
+                            {"value": "ABC HS", "count": 2},
+                        ],
+                    }
+                ],
             },
         )
         client.post(
             f"/api/runs/{run_id}/columns/smoke.csv/State/clusters",
             json={
-                "source": "smoke.csv", "column": "State",
+                "source": "smoke.csv",
+                "column": "State",
                 "status": "no_inconsistency",
                 "clusters": [],
             },
@@ -408,7 +396,8 @@ def _post_column_clusters(client, run_id: str) -> None:
     client.post(
         f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
         json={
-            "source": "smoke.csv", "column": "School",
+            "source": "smoke.csv",
+            "column": "School",
             "status": "labeled",
             "clusters": [
                 {
@@ -481,7 +470,8 @@ class TestListColumnClusters:
         client.post(
             f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
             json={
-                "source": "smoke.csv", "column": "School",
+                "source": "smoke.csv",
+                "column": "School",
                 "status": "no_inconsistency",
                 "clusters": [],
             },
@@ -558,8 +548,11 @@ class TestColumnClusterLabel:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "column_cluster", "target_id": tid,
-                "source": "smoke.csv", "column": "School", "status": "fp",
+                "target": "column_cluster",
+                "target_id": tid,
+                "source": "smoke.csv",
+                "column": "School",
+                "status": "fp",
             },
         ).raise_for_status()
         r = client.get(f"/api/runs/{run_id}/column-clusters?status=fp")
@@ -572,7 +565,8 @@ class TestColumnClusterLabel:
         assert items[0]["cluster_local_id"] == "c2"
 
     def test_post_label_accepts_confirmed_canonical(
-        self, client_project,
+        self,
+        client_project,
     ) -> None:
         """Operator endorses one of the cluster's surface forms as
         the canonical via ``confirmed_canonical``. The verdict
@@ -586,8 +580,10 @@ class TestColumnClusterLabel:
         r = client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "column_cluster", "target_id": tid,
-                "source": "smoke.csv", "column": "School",
+                "target": "column_cluster",
+                "target_id": tid,
+                "source": "smoke.csv",
+                "column": "School",
                 "status": "tp",
                 "confirmed_canonical": "BBB",
             },
@@ -606,7 +602,8 @@ class TestColumnClusterLabel:
         assert by_local["c2"]["label_confirmed_canonical"] is None
 
     def test_post_label_rejects_off_cluster_confirmed_canonical(
-        self, client_project,
+        self,
+        client_project,
     ) -> None:
         """Operator endorses a value that's not in the cluster's
         ``values`` -- server rejects with 400 (the synthesised
@@ -619,7 +616,8 @@ class TestColumnClusterLabel:
             json={
                 "target": "column_cluster",
                 "target_id": "colclust\x00smoke.csv\x00School\x00c1",
-                "source": "smoke.csv", "column": "School",
+                "source": "smoke.csv",
+                "column": "School",
                 "status": "tp",
                 # Not a value of c1 (c1 = {BBB, ABC HS}).
                 "confirmed_canonical": "California",
@@ -629,7 +627,8 @@ class TestColumnClusterLabel:
         assert "confirmed_canonical" in r.text
 
     def test_post_label_clears_confirmed_canonical_with_null(
-        self, client_project,
+        self,
+        client_project,
     ) -> None:
         """Operator changes their mind: re-POST with
         ``confirmed_canonical=null`` clears a previous endorsement.
@@ -640,17 +639,22 @@ class TestColumnClusterLabel:
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "column_cluster", "target_id": tid,
-                "source": "smoke.csv", "column": "School",
-                "status": "tp", "confirmed_canonical": "BBB",
+                "target": "column_cluster",
+                "target_id": tid,
+                "source": "smoke.csv",
+                "column": "School",
+                "status": "tp",
+                "confirmed_canonical": "BBB",
             },
         ).raise_for_status()
         # Re-POST without the field => server defaults to None.
         client.post(
             f"/api/runs/{run_id}/labels",
             json={
-                "target": "column_cluster", "target_id": tid,
-                "source": "smoke.csv", "column": "School",
+                "target": "column_cluster",
+                "target_id": tid,
+                "source": "smoke.csv",
+                "column": "School",
                 "status": "tp",
                 "confirmed_canonical": None,
             },
@@ -724,9 +728,7 @@ class TestDraftSurfacing:
             assert items[0]["label_status"] == "unlabeled"
             assert items[0]["llm_canonical"] == "BBB"
             assert items[0]["llm_agreement"] == 0.85
-            assert items[0]["llm_target_style"] == (
-                "spelled-out form, as in 'Tipton High School'"
-            )
+            assert items[0]["llm_target_style"] == ("spelled-out form, as in 'Tipton High School'")
             assert items[0]["kind"] == "text"
             assert items[1]["cluster_local_id"] == "c2"
             assert items[1]["kind"] == "casing"
@@ -735,9 +737,7 @@ class TestDraftSurfacing:
             assert items[1]["llm_target_style"] is None
             # ``target_id`` matches the canonical helper so a verdict
             # posted on the draft can be looked up after promotion.
-            assert items[0]["target_id"] == (
-                "colclust\x00smoke.csv\x00School\x00c1"
-            )
+            assert items[0]["target_id"] == ("colclust\x00smoke.csv\x00School\x00c1")
 
     def test_include_drafts_false_hides_them(self, tmp_path: Path) -> None:
         project = tmp_path / "ws"
@@ -747,13 +747,12 @@ class TestDraftSurfacing:
         _write_drafts(run_dir)
         app = create_app(project, annotator="reviewer")
         with TestClient(app) as client:
-            r = client.get(
-                f"/api/runs/{run_dir.name}/column-clusters?include_drafts=false"
-            )
+            r = client.get(f"/api/runs/{run_dir.name}/column-clusters?include_drafts=false")
             assert r.json()["total"] == 0
 
     def test_drafts_hidden_when_column_already_labelled(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         project = tmp_path / "ws"
         project.mkdir()
@@ -767,15 +766,18 @@ class TestDraftSurfacing:
             client.post(
                 f"/api/runs/{run_dir.name}/columns/smoke.csv/School/clusters",
                 json={
-                    "source": "smoke.csv", "column": "School",
+                    "source": "smoke.csv",
+                    "column": "School",
                     "status": "labeled",
-                    "clusters": [{
-                        "cluster_id": "c1",
-                        "values": [
-                            {"value": "BBB", "count": 5},
-                            {"value": "ABC HS", "count": 2},
-                        ],
-                    }],
+                    "clusters": [
+                        {
+                            "cluster_id": "c1",
+                            "values": [
+                                {"value": "BBB", "count": 5},
+                                {"value": "ABC HS", "count": 2},
+                            ],
+                        }
+                    ],
                 },
             ).raise_for_status()
             r = client.get(f"/api/runs/{run_dir.name}/column-clusters")
@@ -803,7 +805,8 @@ class TestPerClusterLabelling:
     """
 
     def test_first_verdict_records_label_without_promoting(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Posting a verdict on a draft cluster records the label
         but does NOT create a ``ColumnClusters`` record. The other
@@ -837,9 +840,7 @@ class TestPerClusterLabelling:
                 "auto-promote should be gone; no record file should "
                 "be written by a per-cluster verdict"
             )
-            listing = client.get(
-                f"/api/runs/{run_id}/column-clusters"
-            ).json()
+            listing = client.get(f"/api/runs/{run_id}/column-clusters").json()
             by_id = {it["cluster_local_id"]: it for it in listing["items"]}
             assert set(by_id.keys()) == {"c1", "c2"}
             # Both surface as drafts: c2 has the TP verdict, c1 is
@@ -860,7 +861,8 @@ class TestPerClusterLabelling:
             assert by_id["c2"]["llm_target_style"] is None
 
     def test_second_verdict_lands_on_another_draft(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """After voting on c2 the operator can still vote on c1.
         Both verdicts land; no record materializes."""
@@ -885,16 +887,15 @@ class TestPerClusterLabelling:
                     },
                 )
                 assert r.status_code == 200, r.text
-            listing = client.get(
-                f"/api/runs/{run_id}/column-clusters"
-            ).json()
+            listing = client.get(f"/api/runs/{run_id}/column-clusters").json()
             by_id = {it["cluster_local_id"]: it for it in listing["items"]}
             assert by_id["c1"]["label_status"] == "fp"
             assert by_id["c2"]["label_status"] == "tp"
             assert not (run_dir / "column_clusters.jsonl").exists()
 
     def test_overlapping_drafts_each_get_independent_verdict(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """Regression for the 500 the operator hit when the LLM
         emitted overlapping drafts (a superset cluster + two subset
@@ -922,9 +923,7 @@ class TestPerClusterLabelling:
             )
             assert r.status_code == 200, r.text
             # c2 and c3 (the subsets) remain available for labelling.
-            listing = client.get(
-                f"/api/runs/{run_id}/column-clusters"
-            ).json()
+            listing = client.get(f"/api/runs/{run_id}/column-clusters").json()
             by_id = {it["cluster_local_id"]: it for it in listing["items"]}
             assert set(by_id.keys()) == {"c1", "c2", "c3"}
             assert by_id["c1"]["label_status"] == "tp"
@@ -943,9 +942,7 @@ class TestPerClusterLabelling:
                 },
             )
             assert r.status_code == 200, r.text
-            listing = client.get(
-                f"/api/runs/{run_id}/column-clusters"
-            ).json()
+            listing = client.get(f"/api/runs/{run_id}/column-clusters").json()
             by_id = {it["cluster_local_id"]: it for it in listing["items"]}
             assert by_id["c1"]["label_status"] == "tp"
             assert by_id["c2"]["label_status"] == "fp"
@@ -976,7 +973,8 @@ class TestPerClusterLabelling:
             assert r.status_code == 404
 
     def test_saved_record_still_accepts_verdicts(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         """When the column board has saved a ``ColumnClusters`` record
         (the disjoint-partition path), verdicts on its cluster_ids
@@ -993,15 +991,18 @@ class TestPerClusterLabelling:
             save = client.post(
                 f"/api/runs/{run_id}/columns/smoke.csv/School/clusters",
                 json={
-                    "source": "smoke.csv", "column": "School",
+                    "source": "smoke.csv",
+                    "column": "School",
                     "status": "labeled",
-                    "clusters": [{
-                        "cluster_id": "c1",
-                        "values": [
-                            {"value": "BBB", "count": 5},
-                            {"value": "ABC HS", "count": 2},
-                        ],
-                    }],
+                    "clusters": [
+                        {
+                            "cluster_id": "c1",
+                            "values": [
+                                {"value": "BBB", "count": 5},
+                                {"value": "ABC HS", "count": 2},
+                            ],
+                        }
+                    ],
                 },
             )
             save.raise_for_status()
@@ -1016,9 +1017,7 @@ class TestPerClusterLabelling:
                 },
             )
             assert r.status_code == 200, r.text
-            listing = client.get(
-                f"/api/runs/{run_id}/column-clusters"
-            ).json()
+            listing = client.get(f"/api/runs/{run_id}/column-clusters").json()
             by_id = {it["cluster_local_id"]: it for it in listing["items"]}
             assert by_id["c1"]["label_status"] == "tp"
 
@@ -1063,9 +1062,7 @@ def _write_overlapping_drafts(run_dir: Path) -> None:
             },
         ],
     }
-    with (run_dir / "column_cluster_drafts.jsonl").open(
-        "w", encoding="utf-8"
-    ) as fh:
+    with (run_dir / "column_cluster_drafts.jsonl").open("w", encoding="utf-8") as fh:
         fh.write(json.dumps(drafts) + "\n")
 
 
@@ -1098,12 +1095,16 @@ class TestCorrectionsRouteSlashColumn:
         outputs.mkdir(parents=True, exist_ok=True)
         run_dir = outputs / "20260101T000000Z_slash"
         run_dir.mkdir()
-        run_dir.joinpath("summary.json").write_text(json.dumps({
-            "config": {
-                "csv_paths": [str(csv_path)],
-                "sources": ["ship.csv"],
-            },
-        }))
+        run_dir.joinpath("summary.json").write_text(
+            json.dumps(
+                {
+                    "config": {
+                        "csv_paths": [str(csv_path)],
+                        "sources": ["ship.csv"],
+                    },
+                }
+            )
+        )
         run_dir.joinpath("clusters.json").write_text("[]")
         run_dir.joinpath("issues.json").write_text("[]")
         drafts = {
@@ -1118,13 +1119,12 @@ class TestCorrectionsRouteSlashColumn:
                 },
             ],
         }
-        run_dir.joinpath("column_cluster_drafts.jsonl").write_text(
-            json.dumps(drafts) + "\n"
-        )
+        run_dir.joinpath("column_cluster_drafts.jsonl").write_text(json.dumps(drafts) + "\n")
         return run_dir
 
     def test_corrections_endpoints_work_with_slash_in_column(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         project = tmp_path / "ws"
         project.mkdir()
@@ -1165,16 +1165,12 @@ class TestCorrectionsRouteSlashColumn:
                 },
             )
             assert p.status_code == 200, p.text
-            assert p.json()["saved_value_corrections"] == {
-                "Arizona": ["Arizona", "AZ"]
-            }
+            assert p.json()["saved_value_corrections"] == {"Arizona": ["Arizona", "AZ"]}
             back = client.get(
                 f"/api/runs/{run_id}/column-cluster-corrections",
                 params={"cluster_id": tid},
             )
-            assert back.json()["saved_value_corrections"] == {
-                "Arizona": ["Arizona", "AZ"]
-            }
+            assert back.json()["saved_value_corrections"] == {"Arizona": ["Arizona", "AZ"]}
 
 
 class TestVerdictPreservesCorrections:
@@ -1195,10 +1191,16 @@ class TestVerdictPreservesCorrections:
         ).json()["saved_value_corrections"]
 
     def _verdict(self, client, run_id, tid, status):
-        return client.post(f"/api/runs/{run_id}/labels", json={
-            "target": "column_cluster", "target_id": tid,
-            "source": "smoke.csv", "column": "School", "status": status,
-        })
+        return client.post(
+            f"/api/runs/{run_id}/labels",
+            json={
+                "target": "column_cluster",
+                "target_id": tid,
+                "source": "smoke.csv",
+                "column": "School",
+                "status": status,
+            },
+        )
 
     def test_verdict_after_corrections_keeps_them(self, tmp_path: Path) -> None:
         project = tmp_path / "ws"
@@ -1225,7 +1227,8 @@ class TestVerdictPreservesCorrections:
             assert self._corr(client, run_id, tid) == {"EEE": "Elm, East"}
 
     def test_explicit_clear_is_not_resurrected_by_a_verdict(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         project = tmp_path / "ws"
         project.mkdir()
@@ -1251,7 +1254,6 @@ class TestVerdictPreservesCorrections:
             # A later verdict must NOT resurrect the cleared mapping.
             self._verdict(client, run_id, tid, "tp").raise_for_status()
             assert self._corr(client, run_id, tid) == {}
-
 
 
 # ---------------------------------------------------------------------------
@@ -1297,9 +1299,7 @@ class TestFnValues:
         ).raise_for_status()
         rows = [
             json.loads(line)
-            for line in client.get(
-                f"/api/runs/{run_id}/export/benchmark"
-            ).text.splitlines()
+            for line in client.get(f"/api/runs/{run_id}/export/benchmark").text.splitlines()
             if line.strip()
         ]
         # No labelled clusters, so the only cells are the two FN rows.
@@ -1336,9 +1336,9 @@ class TestFnValues:
         # Listing is empty again, and the FN cells leave the benchmark.
         assert client.get(url).json()["items"] == []
         rows = [
-            line for line in client.get(
-                f"/api/runs/{run_id}/export/benchmark"
-            ).text.splitlines() if line.strip()
+            line
+            for line in client.get(f"/api/runs/{run_id}/export/benchmark").text.splitlines()
+            if line.strip()
         ]
         assert rows == []
 
@@ -1350,9 +1350,7 @@ class TestFnValues:
         ).raise_for_status()
         # Re-flagging the same value (e.g. editing the fix) updates in
         # place rather than producing duplicate listing rows.
-        client.post(
-            url, json={"value": "Calif.", "corrected_value": "Calif"}
-        ).raise_for_status()
+        client.post(url, json={"value": "Calif.", "corrected_value": "Calif"}).raise_for_status()
         items = client.get(url).json()["items"]
         assert len(items) == 1
         assert items[0]["corrected_value"] == "Calif"

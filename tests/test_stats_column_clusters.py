@@ -20,7 +20,11 @@ from fastapi.testclient import TestClient
 
 from src.labeling.app import create_app
 from src.labeling.schema import (
-    ClusterKind, ClusterValue, ColumnClusters, ColumnLabelStatus, StdCluster,
+    ClusterKind,
+    ClusterValue,
+    ColumnClusters,
+    ColumnLabelStatus,
+    StdCluster,
     column_cluster_target_id,
 )
 
@@ -37,7 +41,8 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_ccstats") -> Path:
         encoding="utf-8",
     )
     (data_dir / "b.csv").write_text(
-        "name,email\nemma,e@x\nEmma,e@x\n", encoding="utf-8",
+        "name,email\nemma,e@x\nEmma,e@x\n",
+        encoding="utf-8",
     )
 
     outputs = project / "outputs"
@@ -60,11 +65,13 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_ccstats") -> Path:
 
     # Saved record: a.csv / name -> c1 (2 vals), c2 (2 vals).
     rec = ColumnClusters(
-        source="a.csv", column="name",
+        source="a.csv",
+        column="name",
         status=ColumnLabelStatus.LABELED,
         clusters=[
             StdCluster(
-                cluster_id="c1", kind=ClusterKind.UNTAGGED,
+                cluster_id="c1",
+                kind=ClusterKind.UNTAGGED,
                 canonical_value="alice",
                 values=[
                     ClusterValue(value="alice", count=2),
@@ -72,7 +79,8 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_ccstats") -> Path:
                 ],
             ),
             StdCluster(
-                cluster_id="c2", kind=ClusterKind.UNTAGGED,
+                cluster_id="c2",
+                kind=ClusterKind.UNTAGGED,
                 canonical_value="bob",
                 values=[
                     ClusterValue(value="bob", count=2),
@@ -83,18 +91,25 @@ def _make_run(project: Path, run_id: str = "20260101T000000Z_ccstats") -> Path:
         annotator="tester",
     )
     (run_dir / "column_clusters.jsonl").write_text(
-        rec.model_dump_json() + "\n", encoding="utf-8",
+        rec.model_dump_json() + "\n",
+        encoding="utf-8",
     )
 
     # Drafts: b.csv / name has one ≥2-value draft cluster.
     drafts = [
         {
-            "source": "b.csv", "column": "name",
-            "runs_completed": 1, "stopped_reason": "two_consecutive",
-            "draft_clusters": [{
-                "values": ["emma", "Emma"], "kind": "untagged",
-                "canonical": "emma", "agreement": 0.5,
-            }],
+            "source": "b.csv",
+            "column": "name",
+            "runs_completed": 1,
+            "stopped_reason": "two_consecutive",
+            "draft_clusters": [
+                {
+                    "values": ["emma", "Emma"],
+                    "kind": "untagged",
+                    "canonical": "emma",
+                    "agreement": 0.5,
+                }
+            ],
         },
     ]
     (run_dir / "column_cluster_drafts.jsonl").write_text(
@@ -126,7 +141,8 @@ class TestStatsIncludeColumnClusters:
     must include column-cluster queue items, not just cell-clusters."""
 
     def test_overall_total_includes_column_cluster_targets(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         client, run_id, _targets = cc_client_and_run
         s = client.get(f"/api/runs/{run_id}/stats").json()
@@ -137,7 +153,8 @@ class TestStatsIncludeColumnClusters:
         assert s["overall"]["fp"] == 0
 
     def test_by_source_split_includes_column_clusters(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         client, run_id, _targets = cc_client_and_run
         s = client.get(f"/api/runs/{run_id}/stats").json()
@@ -148,7 +165,8 @@ class TestStatsIncludeColumnClusters:
         assert s["by_source"]["b.csv"]["unlabeled"] == 1
 
     def test_verdict_on_column_cluster_target_updates_stats(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """TP / FP / Skip verdicts on a column-cluster target must move
         the corresponding counter in /stats."""
@@ -158,8 +176,10 @@ class TestStatsIncludeColumnClusters:
             json={
                 "target": "column_cluster",
                 "target_id": targets["a_name_c1"],
-                "source": "a.csv", "column": "name",
-                "columns": ["name"], "status": "tp",
+                "source": "a.csv",
+                "column": "name",
+                "columns": ["name"],
+                "status": "tp",
             },
         )
         assert r.status_code == 200, r.text
@@ -168,8 +188,10 @@ class TestStatsIncludeColumnClusters:
             json={
                 "target": "column_cluster",
                 "target_id": targets["a_name_c2"],
-                "source": "a.csv", "column": "name",
-                "columns": ["name"], "status": "fp",
+                "source": "a.csv",
+                "column": "name",
+                "columns": ["name"],
+                "status": "fp",
             },
         )
         assert r.status_code == 200, r.text
@@ -185,7 +207,8 @@ class TestStatsIncludeColumnClusters:
         assert s["by_source"]["b.csv"]["unlabeled"] == 1
 
     def test_exclusion_cascade_moves_stats_to_skip(
-        self, cc_client_and_run,
+        self,
+        cc_client_and_run,
     ) -> None:
         """The exclusion -> skip cascade already covers column-clusters
         (see test_exclusion_cascade.py); confirm the stats pill flips
@@ -215,9 +238,9 @@ class TestStatsIncludeColumnClusters:
         outputs.mkdir(parents=True)
         run_dir = outputs / "r"
         run_dir.mkdir()
-        (run_dir / "summary.json").write_text(json.dumps({
-            "config": {"csv_paths": [str(data_dir / "a.csv")]}
-        }))
+        (run_dir / "summary.json").write_text(
+            json.dumps({"config": {"csv_paths": [str(data_dir / "a.csv")]}})
+        )
         (run_dir / "clusters.json").write_text("[]")
         (run_dir / "issues.json").write_text("[]")
         app = create_app(project, annotator="t")
@@ -244,52 +267,105 @@ def _make_mt_run(project: Path, run_id: str = "20260101T000000Z_mtstats") -> Pat
     outputs.mkdir(parents=True, exist_ok=True)
     run_dir = outputs / run_id
     run_dir.mkdir()
-    (run_dir / "summary.json").write_text(json.dumps({
-        "config": {"csv_paths": [str(data_dir / "a.csv")]}
-    }))
+    (run_dir / "summary.json").write_text(
+        json.dumps({"config": {"csv_paths": [str(data_dir / "a.csv")]}})
+    )
     (run_dir / "clusters.json").write_text("[]")
     (run_dir / "issues.json").write_text("[]")
     # 3 distinct findings; vid1 spans two (sheet,row) rows.
     rows = [
-        {"violation_id": "vid1", "kind": "attribute_conflict",
-         "workbook": "wb1", "group_id": "u1",
-         "sheet": "a.csv", "row": 0, "columns": ["x"], "values": {},
-         "linked": [{"sheet": "b.csv", "row": 0}]},
-        {"violation_id": "vid1", "kind": "attribute_conflict",
-         "workbook": "wb1", "group_id": "u1",
-         "sheet": "b.csv", "row": 0, "columns": ["x"], "values": {},
-         "linked": [{"sheet": "a.csv", "row": 0}]},
-        {"violation_id": "vid2", "kind": "duplicate_row",
-         "workbook": "wb1", "group_id": "u1",
-         "sheet": "a.csv", "row": 1, "columns": [], "values": {}, "linked": []},
-        {"violation_id": "vid3", "kind": "fk_orphan",
-         "workbook": "wb1", "group_id": "j1",
-         "sheet": "b.csv", "row": 2, "columns": [], "values": {}, "linked": []},
+        {
+            "violation_id": "vid1",
+            "kind": "attribute_conflict",
+            "workbook": "wb1",
+            "group_id": "u1",
+            "sheet": "a.csv",
+            "row": 0,
+            "columns": ["x"],
+            "values": {},
+            "linked": [{"sheet": "b.csv", "row": 0}],
+        },
+        {
+            "violation_id": "vid1",
+            "kind": "attribute_conflict",
+            "workbook": "wb1",
+            "group_id": "u1",
+            "sheet": "b.csv",
+            "row": 0,
+            "columns": ["x"],
+            "values": {},
+            "linked": [{"sheet": "a.csv", "row": 0}],
+        },
+        {
+            "violation_id": "vid2",
+            "kind": "duplicate_row",
+            "workbook": "wb1",
+            "group_id": "u1",
+            "sheet": "a.csv",
+            "row": 1,
+            "columns": [],
+            "values": {},
+            "linked": [],
+        },
+        {
+            "violation_id": "vid3",
+            "kind": "fk_orphan",
+            "workbook": "wb1",
+            "group_id": "j1",
+            "sheet": "b.csv",
+            "row": 2,
+            "columns": [],
+            "values": {},
+            "linked": [],
+        },
     ]
     (run_dir / "multi_table_violations.jsonl").write_text(
-        "\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8",
+        "\n".join(json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8",
     )
     # Resolver output: one workbook with a confirmed union, a confirmed
     # join, and an unconfirmed union candidate (filtered out by default).
-    groups = [{
-        "workbook": "wb1",
-        "sheets": ["a.csv", "b.csv"],
-        "groups": [
-            {"group_id": "u1", "kind": "union", "confirmed": True,
-             "sheets": ["a.csv", "b.csv"], "primary_key": ["K"],
-             "rationale": "same schema"},
-            {"group_id": "j1", "kind": "join", "confirmed": True,
-             "sheets": ["a.csv", "b.csv"], "primary_key": [],
-             "join": {"parent_sheet": "a.csv", "parent_columns": ["K"],
-                      "child_sheet": "b.csv", "child_columns": ["K"]},
-             "rationale": "fk"},
-            {"group_id": "u2", "kind": "union", "confirmed": False,
-             "sheets": ["a.csv", "b.csv"], "primary_key": ["K"],
-             "rationale": "maybe"},
-        ],
-    }]
+    groups = [
+        {
+            "workbook": "wb1",
+            "sheets": ["a.csv", "b.csv"],
+            "groups": [
+                {
+                    "group_id": "u1",
+                    "kind": "union",
+                    "confirmed": True,
+                    "sheets": ["a.csv", "b.csv"],
+                    "primary_key": ["K"],
+                    "rationale": "same schema",
+                },
+                {
+                    "group_id": "j1",
+                    "kind": "join",
+                    "confirmed": True,
+                    "sheets": ["a.csv", "b.csv"],
+                    "primary_key": [],
+                    "join": {
+                        "parent_sheet": "a.csv",
+                        "parent_columns": ["K"],
+                        "child_sheet": "b.csv",
+                        "child_columns": ["K"],
+                    },
+                    "rationale": "fk",
+                },
+                {
+                    "group_id": "u2",
+                    "kind": "union",
+                    "confirmed": False,
+                    "sheets": ["a.csv", "b.csv"],
+                    "primary_key": ["K"],
+                    "rationale": "maybe",
+                },
+            ],
+        }
+    ]
     (run_dir / "multi_table_groups.jsonl").write_text(
-        "\n".join(json.dumps(g) for g in groups) + "\n", encoding="utf-8",
+        "\n".join(json.dumps(g) for g in groups) + "\n",
+        encoding="utf-8",
     )
     return run_dir
 
@@ -316,8 +392,7 @@ class TestStatsIncludeMultiTable:
         client, run_id = mt_client_and_run
         r = client.post(
             f"/api/runs/{run_id}/multi-table-labels",
-            json={"violation_id": "vid1",
-                  "status": "confirmed_inconsistency"},
+            json={"violation_id": "vid1", "status": "confirmed_inconsistency"},
         )
         assert r.status_code == 200, r.text
         r = client.post(
@@ -327,8 +402,8 @@ class TestStatsIncludeMultiTable:
         assert r.status_code == 200, r.text
         s = client.get(f"/api/runs/{run_id}/stats").json()
         assert s["overall"]["total"] == 3
-        assert s["overall"]["tp"] == 1      # confirmed_inconsistency
-        assert s["overall"]["fp"] == 1      # not_a_violation
+        assert s["overall"]["tp"] == 1  # confirmed_inconsistency
+        assert s["overall"]["fp"] == 1  # not_a_violation
         assert s["overall"]["unlabeled"] == 1
 
 
@@ -338,10 +413,10 @@ class TestMultiTableGroupsEndpoint:
         d = client.get(f"/api/runs/{run_id}/multi-table-groups").json()
         t = d["totals"]
         assert t["workbooks"] == 1
-        assert t["union"] == 1            # only the confirmed union
+        assert t["union"] == 1  # only the confirmed union
         assert t["join"] == 1
         assert t["groups"] == 2
-        assert t["unconfirmed"] == 1      # u2 filtered out, still counted
+        assert t["unconfirmed"] == 1  # u2 filtered out, still counted
         gids = {g["group_id"] for g in d["workbooks"][0]["groups"]}
         assert gids == {"u1", "j1"}
 
@@ -364,7 +439,7 @@ class TestMultiTableGroupsEndpoint:
             f"/api/runs/{run_id}/multi-table-groups",
             params={"include_unconfirmed": "true"},
         ).json()
-        assert d["totals"]["union"] == 2   # confirmed u1 + candidate u2
+        assert d["totals"]["union"] == 2  # confirmed u1 + candidate u2
         gids = {g["group_id"] for g in d["workbooks"][0]["groups"]}
         assert gids == {"u1", "j1", "u2"}
         u2 = next(g for g in d["workbooks"][0]["groups"] if g["group_id"] == "u2")

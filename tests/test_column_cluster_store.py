@@ -21,14 +21,17 @@ from src.labeling.schema import (
     StdCluster,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _cluster(cluster_id: str, *values_counts, canonical: str | None = None,
-             kind: ClusterKind = ClusterKind.UNTAGGED) -> StdCluster:
+def _cluster(
+    cluster_id: str,
+    *values_counts,
+    canonical: str | None = None,
+    kind: ClusterKind = ClusterKind.UNTAGGED,
+) -> StdCluster:
     return StdCluster(
         cluster_id=cluster_id,
         kind=kind,
@@ -37,14 +40,23 @@ def _cluster(cluster_id: str, *values_counts, canonical: str | None = None,
     )
 
 
-def _record(source: str, column: str, *clusters: StdCluster,
-            status: ColumnLabelStatus = ColumnLabelStatus.LABELED,
-            annotator: str = "tester", note: str = "",
-            drop_reason: str = "") -> ColumnClusters:
+def _record(
+    source: str,
+    column: str,
+    *clusters: StdCluster,
+    status: ColumnLabelStatus = ColumnLabelStatus.LABELED,
+    annotator: str = "tester",
+    note: str = "",
+    drop_reason: str = "",
+) -> ColumnClusters:
     return ColumnClusters(
-        source=source, column=column, status=status,
-        drop_reason=drop_reason, clusters=list(clusters),
-        annotator=annotator, note=note,
+        source=source,
+        column=column,
+        status=status,
+        drop_reason=drop_reason,
+        clusters=list(clusters),
+        annotator=annotator,
+        note=note,
     )
 
 
@@ -84,16 +96,17 @@ class TestSchemaInvariants:
 
     def test_canonical_in_values_accepted(self) -> None:
         sc = StdCluster(
-            cluster_id="c1", canonical_value="B",
-            values=[ClusterValue(value="A", count=2),
-                    ClusterValue(value="B", count=5)],
+            cluster_id="c1",
+            canonical_value="B",
+            values=[ClusterValue(value="A", count=2), ClusterValue(value="B", count=5)],
         )
         assert sc.canonical_value == "B"
 
     def test_disjoint_clusters_required(self) -> None:
         with pytest.raises(ValueError, match="appears in two clusters"):
             ColumnClustersIn(
-                source="s.csv", column="Name",
+                source="s.csv",
+                column="Name",
                 status=ColumnLabelStatus.LABELED,
                 clusters=[
                     _cluster("c1", ("A", 2), ("B", 2)),
@@ -104,7 +117,8 @@ class TestSchemaInvariants:
     def test_unique_cluster_ids_required(self) -> None:
         with pytest.raises(ValueError, match="duplicate cluster_id"):
             ColumnClustersIn(
-                source="s.csv", column="Name",
+                source="s.csv",
+                column="Name",
                 status=ColumnLabelStatus.LABELED,
                 clusters=[
                     _cluster("c1", ("A", 2), ("B", 2)),
@@ -115,7 +129,8 @@ class TestSchemaInvariants:
     def test_labeled_requires_clusters(self) -> None:
         with pytest.raises(ValueError, match="labeled requires"):
             ColumnClustersIn(
-                source="s.csv", column="Name",
+                source="s.csv",
+                column="Name",
                 status=ColumnLabelStatus.LABELED,
                 clusters=[],
             )
@@ -132,14 +147,16 @@ class TestSchemaInvariants:
     def test_non_labeled_must_be_empty(self, status: ColumnLabelStatus) -> None:
         with pytest.raises(ValueError, match="requires no clusters"):
             ColumnClustersIn(
-                source="s.csv", column="Name",
+                source="s.csv",
+                column="Name",
                 status=status,
                 clusters=[_cluster("c1", ("A", 2), ("B", 2))],
             )
 
     def test_no_inconsistency_empty_accepted(self) -> None:
         rec = ColumnClustersIn(
-            source="s.csv", column="Name",
+            source="s.csv",
+            column="Name",
             status=ColumnLabelStatus.NO_INCONSISTENCY,
         )
         assert rec.clusters == []
@@ -169,15 +186,23 @@ class TestAppendAndReload:
     def test_latest_wins_on_column_collision(self, tmp_path: Path) -> None:
         path = tmp_path / "column_clusters.jsonl"
         s = ColumnClusterStore(path)
-        s.append(_record(
-            "a.csv", "X", _cluster("c1", ("a", 2), ("A", 1)),
-            note="first",
-        ))
-        s.append(_record(
-            "a.csv", "X", _cluster("c1", ("a", 2), ("A", 1)),
-            _cluster("c2", ("b", 3), ("B", 2)),
-            note="second",
-        ))
+        s.append(
+            _record(
+                "a.csv",
+                "X",
+                _cluster("c1", ("a", 2), ("A", 1)),
+                note="first",
+            )
+        )
+        s.append(
+            _record(
+                "a.csv",
+                "X",
+                _cluster("c1", ("a", 2), ("A", 1)),
+                _cluster("c2", ("b", 3), ("B", 2)),
+                note="second",
+            )
+        )
         latest = s.latest_for("a.csv", "X")
         assert latest is not None
         assert latest.note == "second"
@@ -191,10 +216,13 @@ class TestAppendAndReload:
         path = tmp_path / "column_clusters.jsonl"
         s = ColumnClusterStore(path)
         s.append(_record("a.csv", "X", _cluster("c1", ("a", 2), ("A", 1))))
-        s.append(_record(
-            "a.csv", "X",
-            status=ColumnLabelStatus.NO_INCONSISTENCY,
-        ))
+        s.append(
+            _record(
+                "a.csv",
+                "X",
+                status=ColumnLabelStatus.NO_INCONSISTENCY,
+            )
+        )
         latest = s.latest_for("a.csv", "X")
         assert latest is not None
         assert latest.status == ColumnLabelStatus.NO_INCONSISTENCY
@@ -203,7 +231,8 @@ class TestAppendAndReload:
         assert len(s.history("a.csv", "X")) == 2
 
     def test_creates_parent_directory_on_first_append(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         nested = tmp_path / "deep" / "down" / "column_clusters.jsonl"
         s = ColumnClusterStore(nested)
@@ -253,13 +282,12 @@ class TestMalformedRecovery:
 
     def test_corrupt_json_line_skipped(self, tmp_path: Path) -> None:
         path = tmp_path / "column_clusters.jsonl"
-        good = _record(
-            "a.csv", "X", _cluster("c1", ("a", 1), ("A", 1))
-        ).model_dump_json()
+        good = _record("a.csv", "X", _cluster("c1", ("a", 1), ("A", 1))).model_dump_json()
         path.write_text(good + "\n{not real json}\n" + good + "\n")
         s = ColumnClusterStore(path)
         assert [(r.source, r.column) for r in s.all()] == [
-            ("a.csv", "X"), ("a.csv", "X"),
+            ("a.csv", "X"),
+            ("a.csv", "X"),
         ]
 
     def test_schema_mismatch_skipped(self, tmp_path: Path) -> None:
@@ -282,7 +310,7 @@ class TestMalformedRecovery:
             '  "values": [{"value": "A", "count": 2}, {"value": "B", "count": 2}]},'
             ' {"cluster_id": "c2", "kind": "untagged", "canonical_value": null,'
             '  "values": [{"value": "A", "count": 2}, {"value": "C", "count": 2}]}'
-            ']}'
+            "]}"
         )
         path.write_text(bad + "\n")
         s = ColumnClusterStore(path)
@@ -298,16 +326,23 @@ class TestRoundTrip:
     def test_full_round_trip_preserves_fields(self, tmp_path: Path) -> None:
         path = tmp_path / "column_clusters.jsonl"
         rec_in = _record(
-            "a.csv", "School",
+            "a.csv",
+            "School",
             _cluster(
-                "c1", ("BBB", 47), ("ABC HS", 3),
-                canonical="BBB", kind=ClusterKind.TEXT,
+                "c1",
+                ("BBB", 47),
+                ("ABC HS", 3),
+                canonical="BBB",
+                kind=ClusterKind.TEXT,
             ),
             _cluster(
-                "c2", ("EEE", 19), ("DDD", 1),
+                "c2",
+                ("EEE", 19),
+                ("DDD", 1),
                 kind=ClusterKind.UNTAGGED,
             ),
-            annotator="alice", note="reviewed twice",
+            annotator="alice",
+            note="reviewed twice",
         )
         s1 = ColumnClusterStore(path)
         s1.append(rec_in)
@@ -343,24 +378,29 @@ class TestRoundTrip:
 
 
 class TestLegacyKindMapping:
-    @pytest.mark.parametrize("legacy,expected", [
-        ("entity_variant", ClusterKind.TEXT),
-        ("template_shape", ClusterKind.PATTERN),
-        ("style_convention", ClusterKind.CASING),
-        ("encoding_convention", ClusterKind.NUMERICAL_FORMAT),
-        ("untagged", ClusterKind.UNTAGGED),
-        ("text", ClusterKind.TEXT),
-        ("casing", ClusterKind.CASING),
-        ("pattern", ClusterKind.PATTERN),
-        ("punctuation", ClusterKind.PUNCTUATION),
-        ("numerical_format", ClusterKind.NUMERICAL_FORMAT),
-        ("UNKNOWN_TAG", ClusterKind.UNTAGGED),
-        ("", ClusterKind.UNTAGGED),
-        (None, ClusterKind.UNTAGGED),
-        (42, ClusterKind.UNTAGGED),
-    ])
+    @pytest.mark.parametrize(
+        "legacy,expected",
+        [
+            ("entity_variant", ClusterKind.TEXT),
+            ("template_shape", ClusterKind.PATTERN),
+            ("style_convention", ClusterKind.CASING),
+            ("encoding_convention", ClusterKind.NUMERICAL_FORMAT),
+            ("untagged", ClusterKind.UNTAGGED),
+            ("text", ClusterKind.TEXT),
+            ("casing", ClusterKind.CASING),
+            ("pattern", ClusterKind.PATTERN),
+            ("punctuation", ClusterKind.PUNCTUATION),
+            ("numerical_format", ClusterKind.NUMERICAL_FORMAT),
+            ("UNKNOWN_TAG", ClusterKind.UNTAGGED),
+            ("", ClusterKind.UNTAGGED),
+            (None, ClusterKind.UNTAGGED),
+            (42, ClusterKind.UNTAGGED),
+        ],
+    )
     def test_from_string_handles_all_taxonomies(
-        self, legacy: object, expected: ClusterKind,
+        self,
+        legacy: object,
+        expected: ClusterKind,
     ) -> None:
         assert ClusterKind.from_string(legacy) is expected
 
@@ -381,13 +421,15 @@ class TestLegacyKindMapping:
 
     def test_std_cluster_round_trip_preserves_new_tag(self) -> None:
         # New-taxonomy strings round-trip through JSON.
-        sc = StdCluster.model_validate({
-            "cluster_id": "c1",
-            "kind": "punctuation",
-            "canonical_value": None,
-            "values": [
-                {"value": "a-b", "count": 3},
-                {"value": "a–b", "count": 1},
-            ],
-        })
+        sc = StdCluster.model_validate(
+            {
+                "cluster_id": "c1",
+                "kind": "punctuation",
+                "canonical_value": None,
+                "values": [
+                    {"value": "a-b", "count": 3},
+                    {"value": "a–b", "count": 1},
+                ],
+            }
+        )
         assert sc.kind is ClusterKind.PUNCTUATION

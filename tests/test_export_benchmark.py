@@ -76,30 +76,35 @@ class TestColumnsField:
         # label's frozen scope, not the (potentially re-clustered)
         # cluster's current columns.
         cluster = _cluster("c1", ["a", "b", "c"])
-        store.append(_label(
-            target_id="c1",
-            column="a",
-            columns=["a"],
-            status=LabelStatus.TP,
-            corrected_value="fixed",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.TP,
+                corrected_value="fixed",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {c.column for c in cells} == {"a"}
         assert cells[0].label == "error"
 
     def test_falls_back_to_cluster_columns_when_label_columns_empty(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Old-format label (no ``columns`` set) - exporter falls back to
         # the cluster's columns so existing JSONL still materialises.
         cluster = _cluster("c1", ["a", "b"])
-        store.append(_label(
-            target_id="c1",
-            column="a",
-            columns=[],         # legacy label
-            status=LabelStatus.TP,
-            corrected_value="fixed",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=[],  # legacy label
+                status=LabelStatus.TP,
+                corrected_value="fixed",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {c.column for c in cells} == {"a", "b"}
 
@@ -107,14 +112,16 @@ class TestColumnsField:
 class TestCorrectedValuesField:
     def test_per_column_corrections_applied(self, store: LabelStore) -> None:
         cluster = _cluster("c1", ["first_name", "last_name"])
-        store.append(_label(
-            target_id="c1",
-            column="first_name",
-            columns=["first_name", "last_name"],
-            status=LabelStatus.TP,
-            corrected_value=None,
-            corrected_values={"first_name": "Alice", "last_name": "Smith"},
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="first_name",
+                columns=["first_name", "last_name"],
+                status=LabelStatus.TP,
+                corrected_value=None,
+                corrected_values={"first_name": "Alice", "last_name": "Smith"},
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         by_col = {c.column: c.corrected_value for c in cells}
         assert by_col == {"first_name": "Alice", "last_name": "Smith"}
@@ -122,28 +129,33 @@ class TestCorrectedValuesField:
     def test_falls_back_to_scalar_corrected_value(self, store: LabelStore) -> None:
         # No corrected_values map => every column gets the scalar.
         cluster = _cluster("c1", ["a"])
-        store.append(_label(
-            target_id="c1",
-            column="a",
-            columns=["a"],
-            status=LabelStatus.TP,
-            corrected_value="fixed",
-            corrected_values={},
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.TP,
+                corrected_value="fixed",
+                corrected_values={},
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert cells[0].corrected_value == "fixed"
 
     def test_corrected_value_ignored_when_verdict_is_clean(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster("c1", ["a"])
-        store.append(_label(
-            target_id="c1",
-            column="a",
-            columns=["a"],
-            status=LabelStatus.FP,
-            corrected_value="ignored",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.FP,
+                corrected_value="ignored",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert cells[0].label == "clean"
         assert cells[0].corrected_value is None
@@ -156,14 +168,16 @@ class TestSingleColumnRoundtrip:
 
     def test_roundtrip_matches_legacy_output(self, store: LabelStore) -> None:
         cluster = _cluster("c1", ["name"])
-        store.append(_label(
-            target_id="c1",
-            column="name",
-            columns=["name"],
-            status=LabelStatus.TP,
-            corrected_value="Alice",
-            corrected_values={"name": "Alice"},
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Alice",
+                corrected_values={"name": "Alice"},
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert len(cells) == 1
         assert cells[0].column == "name"
@@ -178,15 +192,18 @@ class TestRowLevelFindings:
     such cluster, using ``column=""`` as the row-level sentinel."""
 
     def test_row_level_cluster_emits_sentinel_record(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster("c1", [], error_types=["row_duplication"])
-        store.append(_label(
-            target_id="c1",
-            column=None,
-            columns=[],
-            status=LabelStatus.TP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column=None,
+                columns=[],
+                status=LabelStatus.TP,
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert len(cells) == 1
         assert cells[0].column == ""
@@ -198,15 +215,28 @@ class TestRowLevelFindings:
 class TestCrossPipelineDeduplication:
     def test_merges_same_cell_provenance(self) -> None:
         typo = BenchmarkCell(
-            source="a.csv", row=2, column="name", original_value="Ailce",
-            label="error", corrected_value="Alice", error_types=["typo"],
-            cluster_ids=["typo-1"], annotators=["reviewer"], note="spelling",
+            source="a.csv",
+            row=2,
+            column="name",
+            original_value="Ailce",
+            label="error",
+            corrected_value="Alice",
+            error_types=["typo"],
+            cluster_ids=["typo-1"],
+            annotators=["reviewer"],
+            note="spelling",
         )
         inconsistency = BenchmarkCell(
-            source="a.csv", row=2, column="name", original_value="Ailce",
-            label="error", corrected_value="Alice",
-            error_types=["inconsistency"], cluster_ids=["inc-1"],
-            annotators=["auditor"], note="minority form",
+            source="a.csv",
+            row=2,
+            column="name",
+            original_value="Ailce",
+            label="error",
+            corrected_value="Alice",
+            error_types=["inconsistency"],
+            cluster_ids=["inc-1"],
+            annotators=["auditor"],
+            note="minority form",
         )
 
         merged = _deduplicate_benchmark_cells([typo, inconsistency])
@@ -221,12 +251,22 @@ class TestCrossPipelineDeduplication:
 
     def test_conflicting_labels_degrade_to_ambiguous(self) -> None:
         error = BenchmarkCell(
-            source="a.csv", row=2, column="name", original_value="Alice",
-            label="error", corrected_value="Alicia", error_types=["typo"],
+            source="a.csv",
+            row=2,
+            column="name",
+            original_value="Alice",
+            label="error",
+            corrected_value="Alicia",
+            error_types=["typo"],
         )
         clean = BenchmarkCell(
-            source="a.csv", row=2, column="name", original_value="Alice",
-            label="clean", error_types=["inconsistency"], low_value=True,
+            source="a.csv",
+            row=2,
+            column="name",
+            original_value="Alice",
+            label="clean",
+            error_types=["inconsistency"],
+            low_value=True,
         )
 
         merged = _deduplicate_benchmark_cells([error, clean])
@@ -237,13 +277,16 @@ class TestCrossPipelineDeduplication:
         assert merged[0].low_value is False
 
     def test_inconsistency_failure_is_not_swallowed(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         def _fail(*args, **kwargs):
             raise RuntimeError("broken inconsistency cache")
 
         monkeypatch.setattr(
-            "src.labeling._cells.materialize_inconsistency_benchmark", _fail,
+            "src.labeling._cells.materialize_inconsistency_benchmark",
+            _fail,
         )
         ctx = SimpleNamespace(run_dir=tmp_path / "run")
 
@@ -260,7 +303,8 @@ class TestAffectedRowsPropagation:
     for the representative row and silently drop the rest."""
 
     def test_fans_out_to_every_affected_row_for_fd_violation(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # FD violations fan out to all affected rows.
         cluster = _cluster(
@@ -275,22 +319,31 @@ class TestAffectedRowsPropagation:
             ],
             row=5,
         )
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1",
-            source="a.csv", row=5, column=None,
-            columns=["zip", "state"],
-            status=LabelStatus.TP,
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=5,
+                column=None,
+                columns=["zip", "state"],
+                status=LabelStatus.TP,
+                annotator="tester",
+            )
+        )
 
         cells = materialize_label_benchmark([cluster], store)
         # 4 rows × 2 columns = 8 emitted cells.
         keys = {(c.row, c.column) for c in cells}
         assert keys == {
-            (5, "zip"), (5, "state"),
-            (23, "zip"), (23, "state"),
-            (26, "zip"), (26, "state"),
-            (32, "zip"), (32, "state"),
+            (5, "zip"),
+            (5, "state"),
+            (23, "zip"),
+            (23, "state"),
+            (26, "zip"),
+            (26, "state"),
+            (32, "zip"),
+            (32, "state"),
         }
         # Every emitted cell carries the cluster's verdict + cluster id.
         for c in cells:
@@ -299,7 +352,8 @@ class TestAffectedRowsPropagation:
             assert c.error_types == ["fd_violation"]
 
     def test_calculation_inconsistency_does_not_fan_out_to_affected_rows(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Calculation inconsistency types (row_calculation_inconsistency,
         # string_calculation_inconsistency) apply ONLY to the anchor row,
@@ -317,19 +371,26 @@ class TestAffectedRowsPropagation:
             ],
             row=5,
         )
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1",
-            source="a.csv", row=5, column=None,
-            columns=["qty", "price", "total"],
-            status=LabelStatus.TP,
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=5,
+                column=None,
+                columns=["qty", "price", "total"],
+                status=LabelStatus.TP,
+                annotator="tester",
+            )
+        )
 
         cells = materialize_label_benchmark([cluster], store)
         # Only 1 row (anchor) × 3 columns = 3 emitted cells.
         keys = {(c.row, c.column) for c in cells}
         assert keys == {
-            (5, "qty"), (5, "price"), (5, "total"),
+            (5, "qty"),
+            (5, "price"),
+            (5, "total"),
         }
         # Verify no cells from affected rows are emitted.
         assert all(c.row == 5 for c in cells)
@@ -340,21 +401,28 @@ class TestAffectedRowsPropagation:
             assert c.error_types == ["row_calculation_inconsistency"]
 
     def test_no_affected_rows_emits_only_primary_row(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Singleton clusters (no detections.affected_rows) must keep
         # their pre-fan-out behaviour: one cell per column at the
         # primary row only.
         cluster = _cluster("c1", ["name"])
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"],
-            status=LabelStatus.TP, corrected_value="Alice",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Alice",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {(c.row, c.column) for c in cells} == {(0, "name")}
 
     def test_primary_row_in_affected_rows_is_not_duplicated(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Compiled detections include the primary row in
         # ``affected_rows`` (the list is the full failing-row set);
@@ -366,17 +434,25 @@ class TestAffectedRowsPropagation:
             detections=[{"affected_rows": [0, 7, 9]}],
             row=0,
         )
-        store.append(_label(
-            target_id="c1", column="city", columns=["city"],
-            status=LabelStatus.TP, corrected_value="Miami",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="city",
+                columns=["city"],
+                status=LabelStatus.TP,
+                corrected_value="Miami",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {(c.row, c.column) for c in cells} == {
-            (0, "city"), (7, "city"), (9, "city"),
+            (0, "city"),
+            (7, "city"),
+            (9, "city"),
         }
 
     def test_peer_rows_do_not_inherit_primary_row_correction(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Regression for cluster contamination: two per-row clusters
         # fired on overlapping ``affected_rows`` (rule-level fan-out),
@@ -397,21 +473,32 @@ class TestAffectedRowsPropagation:
             row_values={"district": "EAST VALLEY  (YAKIMA)"},
             detections=[{"affected_rows": [0, 1]}],
         )
-        store.append(_label(
-            target_id="c1", column="district", columns=["district"],
-            status=LabelStatus.TP, corrected_value="EAST VALLEY (SPOKANE)",
-        ))
-        store.append(_label(
-            target_id="c2", column="district", columns=["district"],
-            status=LabelStatus.TP, corrected_value="EAST VALLEY (YAKIMA)",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="district",
+                columns=["district"],
+                status=LabelStatus.TP,
+                corrected_value="EAST VALLEY (SPOKANE)",
+            )
+        )
+        store.append(
+            _label(
+                target_id="c2",
+                column="district",
+                columns=["district"],
+                status=LabelStatus.TP,
+                corrected_value="EAST VALLEY (YAKIMA)",
+            )
+        )
         cells = materialize_label_benchmark([c1, c2], store)
         by_row = {c.row: c for c in cells}
         assert by_row[0].corrected_value == "EAST VALLEY (SPOKANE)"
         assert by_row[1].corrected_value == "EAST VALLEY (YAKIMA)"
 
     def test_large_fanout_does_not_contaminate_peer_corrections(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Regression for the buggy export file
         # ``benchmark_typo_20260512T213238Z_gpt5-family (10).jsonl``:
@@ -444,11 +531,15 @@ class TestAffectedRowsPropagation:
                 detections=[{"affected_rows": peer_rows}],
             )
             clusters.append(cluster)
-            store.append(_label(
-                target_id=f"c{r}", column="SCHOOL/SITE",
-                columns=["SCHOOL/SITE"],
-                status=LabelStatus.TP, corrected_value=fix,
-            ))
+            store.append(
+                _label(
+                    target_id=f"c{r}",
+                    column="SCHOOL/SITE",
+                    columns=["SCHOOL/SITE"],
+                    status=LabelStatus.TP,
+                    corrected_value=fix,
+                )
+            )
 
         # Forward order: primary clusters in row-ascending order.
         cells = materialize_label_benchmark(clusters, store)
@@ -462,19 +553,25 @@ class TestAffectedRowsPropagation:
         # cluster the exporter visits first.
         store2 = LabelStore(store.path.parent / "labels_rev.jsonl")
         for r, fix in fixes.items():
-            store2.append(_label(
-                target_id=f"c{r}", column="SCHOOL/SITE",
-                columns=["SCHOOL/SITE"],
-                status=LabelStatus.TP, corrected_value=fix,
-            ))
+            store2.append(
+                _label(
+                    target_id=f"c{r}",
+                    column="SCHOOL/SITE",
+                    columns=["SCHOOL/SITE"],
+                    status=LabelStatus.TP,
+                    corrected_value=fix,
+                )
+            )
         cells_rev = materialize_label_benchmark(
-            list(reversed(clusters)), store2,
+            list(reversed(clusters)),
+            store2,
         )
         by_row_rev = {c.row: c.corrected_value for c in cells_rev}
         assert by_row_rev == fixes
 
     def test_overbroad_error_fanout_does_not_make_peer_ambiguous(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Regression for the phantom "ambiguous" verdict on
         # ``f5f0334b.csv`` row 2 (run 20260601T193136Z): a TP cluster
@@ -498,10 +595,14 @@ class TestAffectedRowsPropagation:
                 detections=[{"affected_rows": peers}],
             )
             clean_clusters.append(cl)
-            store.append(_label(
-                target_id=f"clean{r}", column="VENDOR NAME",
-                columns=["VENDOR NAME"], status=LabelStatus.FP,
-            ))
+            store.append(
+                _label(
+                    target_id=f"clean{r}",
+                    column="VENDOR NAME",
+                    columns=["VENDOR NAME"],
+                    status=LabelStatus.FP,
+                )
+            )
         # TP cluster anchored elsewhere whose aggregate detection
         # over-reaches onto rows 2 and 16 (but NOT row 5).
         err = _cluster(
@@ -511,10 +612,14 @@ class TestAffectedRowsPropagation:
             row_values={"VENDOR NAME": "XEROX BUSINESS  SOLU"},
             detections=[{"affected_rows": [2, 10, 16]}],
         )
-        store.append(_label(
-            target_id="err10", column="VENDOR NAME",
-            columns=["VENDOR NAME"], status=LabelStatus.TP,
-        ))
+        store.append(
+            _label(
+                target_id="err10",
+                column="VENDOR NAME",
+                columns=["VENDOR NAME"],
+                status=LabelStatus.TP,
+            )
+        )
 
         cells = materialize_label_benchmark(clean_clusters + [err], store)
         by_row = {c.row: c.label for c in cells}
@@ -540,25 +645,40 @@ class TestPerErrorTypeBundle:
     def test_buckets_split_by_error_type(self, store: LabelStore) -> None:
         # Two clusters, three rows total, two distinct error types.
         cluster_typo = _cluster(
-            "c1", ["name"], error_types=["typo"],
+            "c1",
+            ["name"],
+            error_types=["typo"],
         )
         cluster_inc = {
             **_cluster("c2", ["city"], error_types=["pattern_inconsistency"]),
             "row": 1,
         }
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"],
-            status=LabelStatus.TP, corrected_value="Alice",
-        ))
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c2",
-            source="a.csv", row=1, column="city", columns=["city"],
-            status=LabelStatus.TP, corrected_value="Miami",
-            annotator="tester",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Alice",
+            )
+        )
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c2",
+                source="a.csv",
+                row=1,
+                column="city",
+                columns=["city"],
+                status=LabelStatus.TP,
+                corrected_value="Miami",
+                annotator="tester",
+            )
+        )
 
         buckets = materialize_label_benchmark_by_error_type(
-            [cluster_typo, cluster_inc], store,
+            [cluster_typo, cluster_inc],
+            store,
         )
         assert set(buckets.keys()) == {"typo", "pattern_inconsistency"}
         assert len(buckets["typo"]) == 1
@@ -567,16 +687,23 @@ class TestPerErrorTypeBundle:
         assert buckets["pattern_inconsistency"][0].column == "city"
 
     def test_cell_with_multiple_error_types_is_replicated(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster(
-            "c1", ["school"],
+            "c1",
+            ["school"],
             error_types=["typo", "pattern_inconsistency"],
         )
-        store.append(_label(
-            target_id="c1", column="school", columns=["school"],
-            status=LabelStatus.TP, corrected_value="Bremen Public Schools",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="school",
+                columns=["school"],
+                status=LabelStatus.TP,
+                corrected_value="Bremen Public Schools",
+            )
+        )
         buckets = materialize_label_benchmark_by_error_type([cluster], store)
         # Same cell appears in both buckets - downstream cleaners want
         # "every typo" and "every pattern_inconsistency" independently.
@@ -587,28 +714,38 @@ class TestPerErrorTypeBundle:
         assert buckets["pattern_inconsistency"][0].column == "school"
 
     def test_fp_and_fn_cells_with_no_error_types_go_to_uncategorized(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # FP cluster - error_types still populated on the cluster
         # but the benchmark cell will carry them too. To exercise
         # the uncategorized bucket cleanly, use an empty error_types
         # cluster + an FN cell label.
         cluster_fp_no_types = _cluster("c1", ["x"], error_types=[])
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.FP,
+            )
+        )
         # FN cell: no enclosing cluster, no error_type info available.
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id="cell:a.csv:5:y",
-            source="a.csv", row=5, column="y",
-            status=LabelStatus.FN,
-            corrected_value="real value",
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id="cell:a.csv:5:y",
+                source="a.csv",
+                row=5,
+                column="y",
+                status=LabelStatus.FN,
+                corrected_value="real value",
+                annotator="tester",
+            )
+        )
         buckets = materialize_label_benchmark_by_error_type(
-            [cluster_fp_no_types], store,
+            [cluster_fp_no_types],
+            store,
         )
         assert UNCATEGORIZED_BUCKET in buckets
         # Both the FP cell (no types on cluster) and the FN cell
@@ -618,54 +755,76 @@ class TestPerErrorTypeBundle:
         assert cols == ["x", "y"]
 
     def test_writes_one_jsonl_per_bucket(
-        self, store: LabelStore, tmp_path: Path,
+        self,
+        store: LabelStore,
+        tmp_path: Path,
     ) -> None:
         cluster = _cluster(
-            "c1", ["school"],
+            "c1",
+            ["school"],
             error_types=["typo", "pattern_inconsistency"],
         )
-        store.append(_label(
-            target_id="c1", column="school", columns=["school"],
-            status=LabelStatus.TP, corrected_value="x",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="school",
+                columns=["school"],
+                status=LabelStatus.TP,
+                corrected_value="x",
+            )
+        )
         out_dir = tmp_path / "by_type"
         written = write_benchmark_by_error_type(
-            out_dir, [cluster], store,
+            out_dir,
+            [cluster],
+            store,
         )
         assert set(written.keys()) == {"typo", "pattern_inconsistency"}
         for path in written.values():
             assert path.exists()
             lines = [
-                json.loads(L) for L in path.read_text(encoding="utf-8").splitlines()
-                if L.strip()
+                json.loads(L) for L in path.read_text(encoding="utf-8").splitlines() if L.strip()
             ]
             assert len(lines) == 1
             assert lines[0]["column"] == "school"
             assert lines[0]["label"] == "error"
 
     def test_skip_does_not_drop_sibling_clusters_on_same_row(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Two clusters on the same row; one is TP, one is SKIP. The
         # skip applies to its own cluster only - the sibling TP must
         # still appear in the exported benchmark. Row- or CSV-wide
         # removal is the exclusions API's job, not the export's.
         cluster_tp = _cluster(
-            "c1", ["name"], error_types=["typo"],
+            "c1",
+            ["name"],
+            error_types=["typo"],
         )
         cluster_skip = {
             **_cluster("c2", ["city"], error_types=["pattern_inconsistency"]),
         }
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"],
-            status=LabelStatus.TP, corrected_value="Alice",
-        ))
-        store.append(_label(
-            target_id="c2", column="city", columns=["city"],
-            status=LabelStatus.SKIP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Alice",
+            )
+        )
+        store.append(
+            _label(
+                target_id="c2",
+                column="city",
+                columns=["city"],
+                status=LabelStatus.SKIP,
+            )
+        )
         buckets = materialize_label_benchmark_by_error_type(
-            [cluster_tp, cluster_skip], store,
+            [cluster_tp, cluster_skip],
+            store,
         )
         # TP survives, SKIP is silently dropped.
         assert set(buckets) == {"typo"}
@@ -675,7 +834,9 @@ class TestPerErrorTypeBundle:
         assert rows[0].label == "error"
 
     def test_endpoint_returns_zip_with_per_type_files(
-        self, store: LabelStore, tmp_path: Path,
+        self,
+        store: LabelStore,
+        tmp_path: Path,
     ) -> None:
         # Smoke-test the on-disk shape: a ZIP with one entry per
         # bucket, each readable as JSONL.
@@ -684,16 +845,28 @@ class TestPerErrorTypeBundle:
             **_cluster("c2", ["city"], error_types=["pattern_inconsistency"]),
             "row": 1,
         }
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"],
-            status=LabelStatus.TP, corrected_value="Alice",
-        ))
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c2",
-            source="a.csv", row=1, column="city", columns=["city"],
-            status=LabelStatus.TP, corrected_value="Miami",
-            annotator="tester",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Alice",
+            )
+        )
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c2",
+                source="a.csv",
+                row=1,
+                column="city",
+                columns=["city"],
+                status=LabelStatus.TP,
+                corrected_value="Miami",
+                annotator="tester",
+            )
+        )
         out_dir = tmp_path / "by_type"
         write_benchmark_by_error_type(out_dir, [cluster_a, cluster_b], store)
 
@@ -711,18 +884,25 @@ class TestPerErrorTypeBundle:
                 assert rec["corrected_value"] == "Alice"
 
     def test_non_canonical_error_type_is_slug_safe(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Defensive: a custom detector emits a non-canonical
         # error_type with characters that wouldn't be filename-safe.
         cluster = _cluster(
-            "c1", ["x"],
+            "c1",
+            ["x"],
             error_types=["weird/type with spaces"],
         )
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.TP, corrected_value="ok",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.TP,
+                corrected_value="ok",
+            )
+        )
         buckets = materialize_label_benchmark_by_error_type([cluster], store)
         # The bucket key is sanitised but the data is preserved.
         assert len(buckets) == 1
@@ -746,16 +926,21 @@ class TestValueResolverPopulatesOriginalValue:
     """
 
     def test_resolver_fills_in_empty_row_values(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Cluster has empty row_values - mimics propagated/pruned
         # clusters seen in real runs.
         cluster = _cluster("c1", ["SAU Name"])
         cluster["row_values"] = {}
-        store.append(_label(
-            target_id="c1", column="SAU Name", columns=["SAU Name"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="SAU Name",
+                columns=["SAU Name"],
+                status=LabelStatus.FP,
+            )
+        )
 
         # Resolver returns the canonical CSV value.
         resolver_calls = []
@@ -765,7 +950,9 @@ class TestValueResolverPopulatesOriginalValue:
             return "Education in Unorganized Terr"
 
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=resolver,
+            [cluster],
+            store,
+            value_resolver=resolver,
         )
         assert len(cells) == 1
         assert cells[0].original_value == "Education in Unorganized Terr"
@@ -773,75 +960,102 @@ class TestValueResolverPopulatesOriginalValue:
         assert resolver_calls == [("a.csv", 0, "SAU Name")]
 
     def test_resolver_overrides_row_values_snapshot(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # If row_values is stale (cluster snapshot from before a
         # workbook reload), the resolver wins so the export reflects
         # the live CSV.
         cluster = _cluster("c1", ["x"])
         cluster["row_values"] = {"x": "stale_snapshot"}
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.FP,
+            )
+        )
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=lambda *_: "live_value",
+            [cluster],
+            store,
+            value_resolver=lambda *_: "live_value",
         )
         assert cells[0].original_value == "live_value"
 
     def test_resolver_none_falls_back_to_row_values(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # If the resolver returns None (e.g. source unavailable), the
         # exporter falls back to the cluster's row_values snapshot
         # before defaulting to ``""``.
         cluster = _cluster("c1", ["x"])
         cluster["row_values"] = {"x": "snapshot"}
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.FP,
+            )
+        )
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=lambda *_: None,
+            [cluster],
+            store,
+            value_resolver=lambda *_: None,
         )
         assert cells[0].original_value == "snapshot"
 
     def test_resolver_exception_does_not_break_export(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Any exception from the resolver is swallowed - the export
         # path must never crash because of operator code that throws.
         cluster = _cluster("c1", ["x"])
         cluster["row_values"] = {"x": "snapshot"}
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.FP,
+            )
+        )
 
         def boom(*_):
             raise RuntimeError("boom")
 
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=boom,
+            [cluster],
+            store,
+            value_resolver=boom,
         )
         assert cells[0].original_value == "snapshot"
 
     def test_resolver_fills_fn_cell_original_value(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # FN cells were never enclosed in a cluster, so they have no
         # row_values snapshot. The resolver is the only way to get
         # the live CSV value into the exported benchmark.
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id="cell:a.csv:5:email",
-            source="a.csv", row=5, column="email",
-            status=LabelStatus.FN,
-            corrected_value="real@example.com",
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id="cell:a.csv:5:email",
+                source="a.csv",
+                row=5,
+                column="email",
+                status=LabelStatus.FN,
+                corrected_value="real@example.com",
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark(
-            [], store,
+            [],
+            store,
             value_resolver=lambda s, r, c: "live@example.com",
         )
         assert len(cells) == 1
@@ -850,26 +1064,37 @@ class TestValueResolverPopulatesOriginalValue:
         assert cells[0].cluster_ids == []
 
     def test_latest_unsure_cell_claim_exports_as_ambiguous(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         target_id = "cell:a.csv:5:duration"
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id=target_id,
-            source="a.csv", row=5, column="duration",
-            status=LabelStatus.FN,
-            annotator="tester",
-        ))
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id=target_id,
-            source="a.csv", row=5, column="duration",
-            status=LabelStatus.UNSURE,
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id=target_id,
+                source="a.csv",
+                row=5,
+                column="duration",
+                status=LabelStatus.FN,
+                annotator="tester",
+            )
+        )
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id=target_id,
+                source="a.csv",
+                row=5,
+                column="duration",
+                status=LabelStatus.UNSURE,
+                annotator="tester",
+            )
+        )
 
         cells = materialize_label_benchmark(
-            [], store, value_resolver=lambda *_: "4.5 Innings",
+            [],
+            store,
+            value_resolver=lambda *_: "4.5 Innings",
         )
 
         assert len(cells) == 1
@@ -879,19 +1104,26 @@ class TestValueResolverPopulatesOriginalValue:
         assert cells[0].cluster_ids == []
 
     def test_standalone_partial_cell_claim_exports_as_error(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id="cell:a.csv:5:duration",
-            source="a.csv", row=5, column="duration",
-            status=LabelStatus.PARTIAL,
-            corrected_value="4.5",
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id="cell:a.csv:5:duration",
+                source="a.csv",
+                row=5,
+                column="duration",
+                status=LabelStatus.PARTIAL,
+                corrected_value="4.5",
+                annotator="tester",
+            )
+        )
 
         cells = materialize_label_benchmark(
-            [], store, value_resolver=lambda *_: "4.5 Innings",
+            [],
+            store,
+            value_resolver=lambda *_: "4.5 Innings",
         )
 
         assert len(cells) == 1
@@ -900,24 +1132,33 @@ class TestValueResolverPopulatesOriginalValue:
         assert cells[0].cluster_ids == []
 
     def test_no_resolver_keeps_legacy_behaviour(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Backwards compatible: without a resolver, the exporter
         # mirrors the old behaviour (row_values snapshot, empty
         # string for FN cells).
         cluster = _cluster("c1", ["x"])
         cluster["row_values"] = {"x": "snapshot"}
-        store.append(_label(
-            target_id="c1", column="x", columns=["x"],
-            status=LabelStatus.FP,
-        ))
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id="cell:a.csv:5:y",
-            source="a.csv", row=5, column="y",
-            status=LabelStatus.FN,
-            annotator="tester",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="x",
+                columns=["x"],
+                status=LabelStatus.FP,
+            )
+        )
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id="cell:a.csv:5:y",
+                source="a.csv",
+                row=5,
+                column="y",
+                status=LabelStatus.FN,
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         by_col = {c.column: c.original_value for c in cells}
         assert by_col == {"x": "snapshot", "y": ""}
@@ -931,21 +1172,29 @@ class TestLLMSuggestedValue:
     """
 
     def test_canonical_fix_propagates_to_every_column(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster("c1", ["a", "b"])
         cluster["synthesis"] = {"canonical_fix": "Boston"}
-        store.append(_label(
-            target_id="c1", column="a", columns=["a", "b"],
-            status=LabelStatus.TP, corrected_value="Boston",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a", "b"],
+                status=LabelStatus.TP,
+                corrected_value="Boston",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {c.column: c.llm_suggested_value for c in cells} == {
-            "a": "Boston", "b": "Boston",
+            "a": "Boston",
+            "b": "Boston",
         }
 
     def test_falls_back_to_longest_detection_suggested_fix_per_column(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # No synthesis.canonical_fix; expect column-keyed fallback to
         # the detection's suggested_fix.
@@ -954,32 +1203,45 @@ class TestLLMSuggestedValue:
             {"issue_id": "i1", "columns": ["a"], "suggested_fix": "Boston"},
             {"issue_id": "i2", "columns": ["b"], "suggested_fix": "MA"},
         ]
-        store.append(_label(
-            target_id="c1", column="a", columns=["a", "b"],
-            status=LabelStatus.TP, corrected_value="Boston",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a", "b"],
+                status=LabelStatus.TP,
+                corrected_value="Boston",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert {c.column: c.llm_suggested_value for c in cells} == {
-            "a": "Boston", "b": "MA",
+            "a": "Boston",
+            "b": "MA",
         }
 
     def test_longest_wins_when_multiple_detections_target_same_column(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster("c1", ["a"])
         cluster["detections"] = [
             {"issue_id": "i1", "columns": ["a"], "suggested_fix": "Bos"},
             {"issue_id": "i2", "columns": ["a"], "suggested_fix": "Boston"},
         ]
-        store.append(_label(
-            target_id="c1", column="a", columns=["a"],
-            status=LabelStatus.TP, corrected_value="Boston",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.TP,
+                corrected_value="Boston",
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert cells[0].llm_suggested_value == "Boston"
 
     def test_null_or_empty_suggestions_yield_none(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         cluster = _cluster("c1", ["a"])
         cluster["synthesis"] = {"canonical_fix": None}
@@ -987,15 +1249,20 @@ class TestLLMSuggestedValue:
             {"issue_id": "i1", "columns": ["a"], "suggested_fix": ""},
             {"issue_id": "i2", "columns": ["a"], "suggested_fix": "null"},
         ]
-        store.append(_label(
-            target_id="c1", column="a", columns=["a"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.FP,
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert cells[0].llm_suggested_value is None
 
     def test_fp_clusters_still_record_llm_suggestion(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # An FP verdict means the operator REJECTED the LLM's claim,
         # but we still record what the LLM proposed so downstream
@@ -1003,10 +1270,14 @@ class TestLLMSuggestedValue:
         # re-loading clusters.json.
         cluster = _cluster("c1", ["a"])
         cluster["synthesis"] = {"canonical_fix": "Boston"}
-        store.append(_label(
-            target_id="c1", column="a", columns=["a"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.FP,
+            )
+        )
         cells = materialize_label_benchmark([cluster], store)
         assert cells[0].label == "clean"
         assert cells[0].corrected_value is None
@@ -1015,13 +1286,18 @@ class TestLLMSuggestedValue:
     def test_pure_fn_cell_has_none(self, store: LabelStore) -> None:
         # Cell-level FN labels are filed without an enclosing cluster,
         # so there is no LLM suggestion to record.
-        store.append(Label(
-            target=LabelTarget.CELL,
-            target_id="cell:a.csv:5:x",
-            source="a.csv", row=5, column="x",
-            status=LabelStatus.FN, corrected_value="Boston",
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CELL,
+                target_id="cell:a.csv:5:x",
+                source="a.csv",
+                row=5,
+                column="x",
+                status=LabelStatus.FN,
+                corrected_value="Boston",
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark([], store)
         assert len(cells) == 1
         assert cells[0].label == "error"
@@ -1029,7 +1305,8 @@ class TestLLMSuggestedValue:
         assert cells[0].llm_suggested_value is None
 
     def test_conflict_takes_longest_suggestion_across_clusters(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # Two clusters touching the same cell; both confirmed TP. The
         # exported cell should record the longer of the two LLM
@@ -1038,14 +1315,24 @@ class TestLLMSuggestedValue:
         c1["synthesis"] = {"canonical_fix": "Bos"}
         c2 = _cluster("c2", ["a"])
         c2["synthesis"] = {"canonical_fix": "Boston"}
-        store.append(_label(
-            target_id="c1", column="a", columns=["a"],
-            status=LabelStatus.TP, corrected_value="Boston",
-        ))
-        store.append(_label(
-            target_id="c2", column="a", columns=["a"],
-            status=LabelStatus.TP, corrected_value="Boston",
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.TP,
+                corrected_value="Boston",
+            )
+        )
+        store.append(
+            _label(
+                target_id="c2",
+                column="a",
+                columns=["a"],
+                status=LabelStatus.TP,
+                corrected_value="Boston",
+            )
+        )
         cells = materialize_label_benchmark([c1, c2], store)
         assert len(cells) == 1
         assert cells[0].llm_suggested_value == "Boston"
@@ -1059,14 +1346,23 @@ from src.labeling.export import find_label_conflicts
 
 
 def _bcell(
-    *, source: str = "a.csv", row: int, column: str = "name",
-    original_value: str = "Foo", label: str = "clean",
-    corrected_value=None, cluster_ids=None, note: str = "",
+    *,
+    source: str = "a.csv",
+    row: int,
+    column: str = "name",
+    original_value: str = "Foo",
+    label: str = "clean",
+    corrected_value=None,
+    cluster_ids=None,
+    note: str = "",
 ) -> BenchmarkCell:
     """Factory for a minimal :class:`BenchmarkCell`."""
     return BenchmarkCell(
-        source=source, row=row, column=column,
-        original_value=original_value, label=label,
+        source=source,
+        row=row,
+        column=column,
+        original_value=original_value,
+        label=label,
         corrected_value=corrected_value,
         cluster_ids=list(cluster_ids or []),
         note=note,
@@ -1085,8 +1381,7 @@ class TestFindLabelConflicts:
     def test_distinct_labels_on_same_value_surface_as_conflict(self) -> None:
         cells = [
             _bcell(row=0, label="clean", cluster_ids=["c0"]),
-            _bcell(row=7, label="error", cluster_ids=["c7"],
-                   corrected_value="Foobar"),
+            _bcell(row=7, label="error", cluster_ids=["c7"], corrected_value="Foobar"),
             _bcell(row=12, label="clean", cluster_ids=["c12"]),
         ]
         groups = find_label_conflicts(cells)
@@ -1108,16 +1403,12 @@ class TestFindLabelConflicts:
     ) -> None:
         cells = [
             # Group A: a.csv/name -- conflict.
-            _bcell(source="a.csv", row=0, column="name",
-                   original_value="X", label="clean"),
-            _bcell(source="a.csv", row=1, column="name",
-                   original_value="X", label="error"),
+            _bcell(source="a.csv", row=0, column="name", original_value="X", label="clean"),
+            _bcell(source="a.csv", row=1, column="name", original_value="X", label="error"),
             # Same value but DIFFERENT column -> independent (no conflict).
-            _bcell(source="a.csv", row=2, column="city",
-                   original_value="X", label="clean"),
+            _bcell(source="a.csv", row=2, column="city", original_value="X", label="clean"),
             # Same value but DIFFERENT source -> independent (no conflict).
-            _bcell(source="b.csv", row=2, column="name",
-                   original_value="X", label="clean"),
+            _bcell(source="b.csv", row=2, column="name", original_value="X", label="clean"),
         ]
         groups = find_label_conflicts(cells)
         assert len(groups) == 1
@@ -1153,25 +1444,24 @@ class TestFindLabelConflicts:
         # comparing benchmarks across runs shouldn't have to re-read
         # a conflict report whose rows shuffled.
         cells_a = [
-            _bcell(source="z.csv", row=0, column="c", original_value="V",
-                   label="clean"),
-            _bcell(source="z.csv", row=1, column="c", original_value="V",
-                   label="error"),
-            _bcell(source="a.csv", row=2, column="c", original_value="V",
-                   label="clean"),
-            _bcell(source="a.csv", row=3, column="c", original_value="V",
-                   label="error"),
+            _bcell(source="z.csv", row=0, column="c", original_value="V", label="clean"),
+            _bcell(source="z.csv", row=1, column="c", original_value="V", label="error"),
+            _bcell(source="a.csv", row=2, column="c", original_value="V", label="clean"),
+            _bcell(source="a.csv", row=3, column="c", original_value="V", label="error"),
         ]
         cells_b = list(reversed(cells_a))
         out_a = find_label_conflicts(cells_a)
         out_b = find_label_conflicts(cells_b)
         keys_a = [(g["source"], g["column"], g["original_value"]) for g in out_a]
         keys_b = [(g["source"], g["column"], g["original_value"]) for g in out_b]
-        assert keys_a == keys_b == [
-            ("a.csv", "c", "V"), ("z.csv", "c", "V"),
-        ]
-
-
+        assert (
+            keys_a
+            == keys_b
+            == [
+                ("a.csv", "c", "V"),
+                ("z.csv", "c", "V"),
+            ]
+        )
 
 
 class TestTrivialPerCellFix:
@@ -1181,23 +1471,33 @@ class TestTrivialPerCellFix:
 
     def test_peer_rows_get_own_normalized_fix(self, store: LabelStore) -> None:
         vals = {
-            (0, "name"): "DRY SODA  - TPR 11/18",   # double space
+            (0, "name"): "DRY SODA  - TPR 11/18",  # double space
             (1, "name"): "SEA TANGLE  - TPR",
             (2, "name"): "LIGHTLIFE  - TPR",
         }
         cluster = _cluster(
-            "c1", ["name"],
+            "c1",
+            ["name"],
             synthesis={"canonical_fix": "DRY SODA - TPR 11/18"},
             detections=[{"affected_rows": [0, 1, 2], "columns": ["name"]}],
             row=0,
         )
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1", source="a.csv",
-            row=0, column="name", columns=["name"], status=LabelStatus.TP,
-            note="(auto: spacing anomaly) TRIVIAL", annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=0,
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                note="(auto: spacing anomaly) TRIVIAL",
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark(
-            [cluster], store,
+            [cluster],
+            store,
             value_resolver=lambda s, r, c: vals.get((r, c), ""),
         )
         by_row = {c.row: c.corrected_value for c in cells}
@@ -1213,14 +1513,24 @@ class TestTrivialPerCellFix:
         # An explicit (operator/LLM) fix on a TRIVIAL-noted cell must be
         # preserved -- the deterministic recompute only fills EMPTY fixes.
         cluster = _cluster("c1", ["name"], row=0)
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1", source="a.csv",
-            row=0, column="name", columns=["name"], status=LabelStatus.TP,
-            corrected_value="Operator's better fix",
-            note="spelling+space TRIVIAL", annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=0,
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                corrected_value="Operator's better fix",
+                note="spelling+space TRIVIAL",
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=lambda s, r, c: "foo  bar",
+            [cluster],
+            store,
+            value_resolver=lambda s, r, c: "foo  bar",
         )
         assert cells[0].corrected_value == "Operator's better fix"
 
@@ -1228,25 +1538,36 @@ class TestTrivialPerCellFix:
         # A non-TRIVIAL multi-row cluster keeps the existing fan-out /
         # llm-suggestion behaviour (peer rows are NOT whitespace-normalised).
         cluster = _cluster(
-            "c1", ["name"],
+            "c1",
+            ["name"],
             synthesis={"canonical_fix": "Canonical"},
             detections=[{"affected_rows": [0, 1], "columns": ["name"]}],
             row=0,
         )
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1", source="a.csv",
-            row=0, column="name", columns=["name"], status=LabelStatus.TP,
-            annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=0,
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                annotator="tester",
+            )
+        )
         cells = materialize_label_benchmark(
-            [cluster], store, value_resolver=lambda s, r, c: "weird  value",
+            [cluster],
+            store,
+            value_resolver=lambda s, r, c: "weird  value",
         )
         # Peer row falls back to the cluster's llm suggestion, unchanged.
         by_row = {c.row: c.corrected_value for c in cells}
         assert by_row[1] == "Canonical"
 
     def test_trivial_anchor_note_survives_earlier_fanout(
-        self, store: LabelStore,
+        self,
+        store: LabelStore,
     ) -> None:
         # A non-anchor fan-out (cluster c1, plain note) creates the cell
         # for row 1 BEFORE its own anchor (cluster c2, TRIVIAL note) is
@@ -1255,31 +1576,55 @@ class TestTrivialPerCellFix:
         # whitespace-fix backfill (which keys on "TRIVIAL" in the note)
         # skips the cell and the error exports with no correction.
         c1 = {
-            "cluster_id": "c1", "source": "a.csv", "row": 0,
-            "columns": ["name"], "row_values": {"name": "X"},
+            "cluster_id": "c1",
+            "source": "a.csv",
+            "row": 0,
+            "columns": ["name"],
+            "row_values": {"name": "X"},
             "error_types": ["typo"],
             "detections": [{"affected_rows": [1], "columns": ["name"]}],
         }
         c2 = {
-            "cluster_id": "c2", "source": "a.csv", "row": 1,
-            "columns": ["name"], "row_values": {"name": "Acme  Co"},
-            "error_types": ["typo"], "detections": [],
+            "cluster_id": "c2",
+            "source": "a.csv",
+            "row": 1,
+            "columns": ["name"],
+            "row_values": {"name": "Acme  Co"},
+            "error_types": ["typo"],
+            "detections": [],
         }
         # c1 plain note, c2 TRIVIAL note; both TP, neither carries a fix.
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c1", source="a.csv",
-            row=0, column="name", columns=["name"], status=LabelStatus.TP,
-            note="(real typo)", annotator="tester",
-        ))
-        store.append(Label(
-            target=LabelTarget.CLUSTER, target_id="c2", source="a.csv",
-            row=1, column="name", columns=["name"], status=LabelStatus.TP,
-            note="(auto: spacing anomaly) TRIVIAL", annotator="tester",
-        ))
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c1",
+                source="a.csv",
+                row=0,
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                note="(real typo)",
+                annotator="tester",
+            )
+        )
+        store.append(
+            Label(
+                target=LabelTarget.CLUSTER,
+                target_id="c2",
+                source="a.csv",
+                row=1,
+                column="name",
+                columns=["name"],
+                status=LabelStatus.TP,
+                note="(auto: spacing anomaly) TRIVIAL",
+                annotator="tester",
+            )
+        )
         vals = {(0, "name"): "X", (1, "name"): "Acme  Co"}
         # c1 (the fan-out) is processed BEFORE c2 (the TRIVIAL anchor).
         cells = materialize_label_benchmark(
-            [c1, c2], store,
+            [c1, c2],
+            store,
             value_resolver=lambda s, r, c: vals.get((r, c), ""),
         )
         by_key = {(c.row, c.column): c for c in cells}
@@ -1295,17 +1640,17 @@ class TestIsLowValueFix:
     @pytest.mark.parametrize(
         "a,b,expected",
         [
-            ("New  Haven", "New Haven", True),       # internal whitespace
-            (" Apple ", "Apple", True),              # padding whitespace
-            ("Strubenvalley", "Struben Valley", True),   # word-boundary spacing
-            ("log anberries", "loganberries", True),     # OCR word-split
-            ("St Louis", "St. Louis", True),         # one punctuation added
-            ("Pty,) Ltd", "Pty) Ltd", True),         # one punctuation removed
-            ("apple", "Apple", True),                # casing-only
-            ("Pacfic", "Pacific", False),            # real letter typo
-            ("CENTENNIEL", "CENTENNIAL", False),     # real letter typo
+            ("New  Haven", "New Haven", True),  # internal whitespace
+            (" Apple ", "Apple", True),  # padding whitespace
+            ("Strubenvalley", "Struben Valley", True),  # word-boundary spacing
+            ("log anberries", "loganberries", True),  # OCR word-split
+            ("St Louis", "St. Louis", True),  # one punctuation added
+            ("Pty,) Ltd", "Pty) Ltd", True),  # one punctuation removed
+            ("apple", "Apple", True),  # casing-only
+            ("Pacfic", "Pacific", False),  # real letter typo
+            ("CENTENNIEL", "CENTENNIAL", False),  # real letter typo
             ("NX PRESTIEGE", "NX PRESTIGE", False),  # real letter typo
-            ("foo", "foo", False),                   # no-op (no fix)
+            ("foo", "foo", False),  # no-op (no fix)
         ],
     )
     def test_classification(self, a, b, expected):
@@ -1332,7 +1677,8 @@ class TestSkippedCells:
         # A real verdict on the same cell outranks the skip -> omit it.
         store.append(_label(target_id="c1", column="name", status=LabelStatus.SKIP))
         skipped = materialize_skipped_cells(
-            [_cluster("c1", ["name"])], store,
+            [_cluster("c1", ["name"])],
+            store,
             exclude_keys={("a.csv", 0, "name")},
         )
         assert skipped == []
@@ -1351,11 +1697,17 @@ class TestLowValueFlag:
     low value, however trivial their fix."""
 
     def _flagged(self, store, status, original, fix):
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"], status=status,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=status,
+            )
+        )
         return _cluster(
-            "c1", ["name"],
+            "c1",
+            ["name"],
             row_values={"name": original},
             synthesis={"canonical_fix": fix},
         )
@@ -1381,10 +1733,14 @@ class TestLowValueFlag:
         assert cells[0].low_value is False
 
     def test_clean_without_llm_fix_not_low_value(self, store):
-        store.append(_label(
-            target_id="c1", column="name", columns=["name"],
-            status=LabelStatus.FP,
-        ))
+        store.append(
+            _label(
+                target_id="c1",
+                column="name",
+                columns=["name"],
+                status=LabelStatus.FP,
+            )
+        )
         cl = _cluster("c1", ["name"], row_values={"name": "Acme Ltd"})
         cells = materialize_label_benchmark([cl], store)
         assert cells[0].low_value is False
@@ -1405,39 +1761,45 @@ from src.labeling.export import (
 
 
 class TestLooksLikeInstruction:
-    @pytest.mark.parametrize("text", [
-        'Change "Strubenvalley" to "Struben Valley".',
-        'set Primary Target Firm to "Pacific Breeze (Pty) Ltd"',
-        'Correct to "Property Protection Management SA (Pty) Ltd"',
-        'Change "Ptd" to "Ltd"',
-        'Replace “Smart phones” with “Smartphones”',
-        "Replace Quard-Core with Quad-Core",
-        # Markerless instructions: verb + editing-OBJECT keyword, no quote/arrow.
-        "Remove the trailing comma",
-        "Remove the trailing comma.",
-        "Remove the space before the comma",
-        "Remove the space before the colon.",
-        "Remove the trailing apostrophe",
-        "Add closing parenthesis",
-        "Remove the extra whitespace",
-        "Delete the leading space",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            'Change "Strubenvalley" to "Struben Valley".',
+            'set Primary Target Firm to "Pacific Breeze (Pty) Ltd"',
+            'Correct to "Property Protection Management SA (Pty) Ltd"',
+            'Change "Ptd" to "Ltd"',
+            "Replace “Smart phones” with “Smartphones”",
+            "Replace Quard-Core with Quad-Core",
+            # Markerless instructions: verb + editing-OBJECT keyword, no quote/arrow.
+            "Remove the trailing comma",
+            "Remove the trailing comma.",
+            "Remove the space before the comma",
+            "Remove the space before the colon.",
+            "Remove the trailing apostrophe",
+            "Add closing parenthesis",
+            "Remove the extra whitespace",
+            "Delete the leading space",
+        ],
+    )
     def test_instruction_prose_detected(self, text):
         assert _looks_like_instruction(text) is True
 
-    @pytest.mark.parametrize("text", [
-        "Struben Valley",
-        "Pacific Breeze (Pty) Ltd",
-        "Smartphones & PDAs",
-        "Change Healthcare Inc",       # verb prefix but no instruction marker
-        "Set Design Studio",            # verb prefix but no marker
-        "Remove Wall Anchors",          # verb prefix, no editing-object keyword
-        "Add Value Consulting Group",   # verb prefix, no editing-object keyword
-        "Trim Kitchen Cabinets",        # verb prefix, no editing-object keyword
-        "10 to 20",                      # marker but no verb prefix
-        "",
-        None,
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Struben Valley",
+            "Pacific Breeze (Pty) Ltd",
+            "Smartphones & PDAs",
+            "Change Healthcare Inc",  # verb prefix but no instruction marker
+            "Set Design Studio",  # verb prefix but no marker
+            "Remove Wall Anchors",  # verb prefix, no editing-object keyword
+            "Add Value Consulting Group",  # verb prefix, no editing-object keyword
+            "Trim Kitchen Cabinets",  # verb prefix, no editing-object keyword
+            "10 to 20",  # marker but no verb prefix
+            "",
+            None,
+        ],
+    )
     def test_plain_values_not_instructions(self, text):
         assert _looks_like_instruction(text) is False
 
@@ -1447,22 +1809,32 @@ class TestDeriveTrivialFix:
     result of that specific edit (faithful by construction), or ``None`` when
     the instruction is out of scope."""
 
-    @pytest.mark.parametrize("original,instruction,expected", [
-        # Class 1: remove a stray space before a named mark.
-        ("PMP , Machine learning with R",
-         "Remove the space before the comma",
-         "PMP, Machine learning with R"),
-        ("Petroleum (Price) Violation Escrow : Exxon 1986 Restitution",
-         "Remove the space before the colon.",
-         "Petroleum (Price) Violation Escrow: Exxon 1986 Restitution"),
-        # Class 2: remove a trailing named mark.
-        ("MATTHEW R. DEKOATZ,", "Remove the trailing comma", "MATTHEW R. DEKOATZ"),
-        ("RUBEN P. HERNANDEZ,", "Remove the trailing comma.", "RUBEN P. HERNANDEZ"),
-        ("Elliott Nevertire Trust'", "Remove the trailing apostrophe",
-         "Elliott Nevertire Trust"),
-        # Class 3: purely-whitespace collapse (no punctuation object named).
-        ("Acme  Ltd", "Remove the extra whitespace", "Acme Ltd"),
-    ])
+    @pytest.mark.parametrize(
+        "original,instruction,expected",
+        [
+            # Class 1: remove a stray space before a named mark.
+            (
+                "PMP , Machine learning with R",
+                "Remove the space before the comma",
+                "PMP, Machine learning with R",
+            ),
+            (
+                "Petroleum (Price) Violation Escrow : Exxon 1986 Restitution",
+                "Remove the space before the colon.",
+                "Petroleum (Price) Violation Escrow: Exxon 1986 Restitution",
+            ),
+            # Class 2: remove a trailing named mark.
+            ("MATTHEW R. DEKOATZ,", "Remove the trailing comma", "MATTHEW R. DEKOATZ"),
+            ("RUBEN P. HERNANDEZ,", "Remove the trailing comma.", "RUBEN P. HERNANDEZ"),
+            (
+                "Elliott Nevertire Trust'",
+                "Remove the trailing apostrophe",
+                "Elliott Nevertire Trust",
+            ),
+            # Class 3: purely-whitespace collapse (no punctuation object named).
+            ("Acme  Ltd", "Remove the extra whitespace", "Acme Ltd"),
+        ],
+    )
     def test_derives_faithfully(self, original, instruction, expected):
         assert _derive_trivial_fix(original, instruction) == expected
 
@@ -1473,16 +1845,19 @@ class TestDeriveTrivialFix:
         )
         assert out == "Group Insurance Acct Appd&Cont Isf"
 
-    @pytest.mark.parametrize("original,instruction", [
-        # Ambiguous placement -> not derivable.
-        ("CLUBS-CNTRY,MBRSHIP(ATHLET", "Add closing parenthesis"),
-        # Blank-a-cell semantics -> not a concrete value.
-        ("NM", "set SA3_Code to null"),
-        # Replace with an unknown value -> concrete value unavailable here.
-        ('Change "x" to "y"', 'Change "x" to "y"'),
-        # A trailing-comma instruction on a value with no trailing comma is a no-op.
-        ("MATTHEW R. DEKOATZ", "Remove the trailing comma"),
-    ])
+    @pytest.mark.parametrize(
+        "original,instruction",
+        [
+            # Ambiguous placement -> not derivable.
+            ("CLUBS-CNTRY,MBRSHIP(ATHLET", "Add closing parenthesis"),
+            # Blank-a-cell semantics -> not a concrete value.
+            ("NM", "set SA3_Code to null"),
+            # Replace with an unknown value -> concrete value unavailable here.
+            ('Change "x" to "y"', 'Change "x" to "y"'),
+            # A trailing-comma instruction on a value with no trailing comma is a no-op.
+            ("MATTHEW R. DEKOATZ", "Remove the trailing comma"),
+        ],
+    )
     def test_out_of_scope_returns_none(self, original, instruction):
         assert _derive_trivial_fix(original, instruction) is None
 
@@ -1497,7 +1872,9 @@ class TestDeriveTrivialFix:
 class TestLeanBenchmarkRecord:
     def _cell(self, **kw) -> BenchmarkCell:
         base = {
-            "source": "a.csv", "row": 0, "column": "Firm",
+            "source": "a.csv",
+            "row": 0,
+            "column": "Firm",
             "original_value": "Pacfic Breeze (Pty) Ltd",
             "label": "error",
             "corrected_value": None,
@@ -1515,8 +1892,13 @@ class TestLeanBenchmarkRecord:
         rec = lean_benchmark_record(self._cell())
         assert set(rec.keys()) == set(LEAN_BENCHMARK_FIELDS)
         # Provenance bloat is dropped.
-        for dropped in ("cluster_ids", "detection_ids", "annotators",
-                        "note", "llm_suggested_value"):
+        for dropped in (
+            "cluster_ids",
+            "detection_ids",
+            "annotators",
+            "note",
+            "llm_suggested_value",
+        ):
             assert dropped not in rec
 
     def test_prose_corrected_value_resolves_to_llm_value(self):
@@ -1556,8 +1938,9 @@ class TestLeanBenchmarkRecord:
         assert rec["corrected_value"] == "MATTHEW R. DEKOATZ"
 
     def test_clean_cell_has_null_corrected_value(self):
-        cell = self._cell(label="clean", corrected_value=None,
-                          llm_suggested_value="Cape Gate (Pty) Ltd")
+        cell = self._cell(
+            label="clean", corrected_value=None, llm_suggested_value="Cape Gate (Pty) Ltd"
+        )
         rec = lean_benchmark_record(cell)
         assert rec["label"] == "clean"
         assert rec["corrected_value"] is None
@@ -1592,7 +1975,9 @@ class TestFullBenchmarkRecord:
 
     def _cell(self, **kw) -> BenchmarkCell:
         base = {
-            "source": "a.csv", "row": 0, "column": "Firm",
+            "source": "a.csv",
+            "row": 0,
+            "column": "Firm",
             "original_value": "Pacfic Breeze (Pty) Ltd",
             "label": "error",
             "corrected_value": None,
@@ -1626,8 +2011,7 @@ class TestFullBenchmarkRecord:
         assert rec["corrected_value"] == "Pacific Breeze (Pty) Ltd"
 
     def test_clean_cell_dumped_unchanged(self):
-        cell = self._cell(label="clean", corrected_value="whatever",
-                          llm_suggested_value="x")
+        cell = self._cell(label="clean", corrected_value="whatever", llm_suggested_value="x")
         rec = full_benchmark_record(cell)
         # Non-error cells are dumped verbatim (corrected_value untouched).
         assert rec["corrected_value"] == "whatever"
@@ -1667,8 +2051,11 @@ def _exclusion(scope, source, *, rows=None, columns=None) -> Exclusion:
 class TestMaterializeIgnoredCells:
     def _skip_cell(self, source="a.csv", row=3, column="Firm") -> BenchmarkCell:
         return BenchmarkCell(
-            source=source, row=row, column=column,
-            original_value="Acme  Ltd", label="skip",
+            source=source,
+            row=row,
+            column=column,
+            original_value="Acme  Ltd",
+            label="skip",
         )
 
     def test_skip_cells_become_skip_records(self):
@@ -1681,9 +2068,7 @@ class TestMaterializeIgnoredCells:
         assert r.scope is None
 
     def test_csv_exclusion_is_one_wildcard_sentinel(self):
-        recs = materialize_ignored_cells(
-            [], [_exclusion(ExclusionScope.CSV, "big.csv")]
-        )
+        recs = materialize_ignored_cells([], [_exclusion(ExclusionScope.CSV, "big.csv")])
         assert len(recs) == 1
         r = recs[0]
         assert (r.reason, r.scope) == ("exclusion", "csv")

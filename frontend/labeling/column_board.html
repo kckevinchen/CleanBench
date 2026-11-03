@@ -15,7 +15,6 @@
   <script src="./viewport-zoom.js"></script>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./column_board.css?v=7" />
-  <link rel="stylesheet" href="./local.css" />
 </head>
 <body>
   <header>
@@ -50,10 +49,10 @@
         </select>
       </div>
       <div class="filter-cell">
-        <span>Has draft</span>
+        <span>Has proposals</span>
         <select id="filter-draft">
-          <option value="">(any)</option>
-          <option value="yes" selected>with LLM draft</option>
+          <option value="" selected>(any)</option>
+          <option value="yes">with imported proposals</option>
           <option value="no">no draft</option>
         </select>
       </div>
@@ -80,7 +79,7 @@
     <div class="cb-body">
       <section class="cb-proposals">
         <header class="cb-section-head">
-          <h2>LLM-proposed clusters</h2>
+          <h2>Imported clusters</h2>
           <span class="muted" id="cb-proposals-meta"></span>
           <span class="cb-bulk-actions" id="cb-bulk-actions" hidden>
             <button type="button" id="cb-accept-all" class="ghost">Accept all</button>
@@ -96,7 +95,7 @@
 
   <section class="detail" id="detail">
     <h2>Distinct values</h2>
-    <p class="cb-help muted">All non-empty values in this column. Pick 2+ to add a missed cluster the LLM didn't propose — or click <strong>⚑</strong> on a single value to flag it as a missed inconsistency (FN) and type its corrected value.</p>
+    <p class="cb-help muted">All non-empty values in this column. Pick 2+ to add a missed cluster not already grouped — or click <strong>⚑</strong> on a single value to flag it as a missed inconsistency (FN) and type its corrected value.</p>
     <input id="cb-value-search" type="text" placeholder="filter values…" autocomplete="off" />
     <div class="cb-value-list" id="cb-value-list">(no column selected)</div>
     <div class="cb-value-actions" hidden id="cb-value-actions">
@@ -112,7 +111,7 @@
          when the correct value isn't present in the column or only one
          variant exists. -->
     <h2 class="cb-fn-title">Flagged as missed (FN)</h2>
-    <p class="cb-help muted">Single values the LLM missed — e.g. a misspelling whose correct form isn't in the column. Flagging marks every row holding that value as an inconsistency FN with your fix and feeds the inconsistency benchmark. No Save needed.</p>
+    <p class="cb-help muted">Single values not yet labeled — e.g. a misspelling whose correct form isn't in the column. Flagging marks every row holding that value as an inconsistency FN with your fix and feeds the inconsistency benchmark. No Save needed.</p>
     <div class="cb-fn-list" id="cb-fn-list">
       <div class="muted cb-fn-empty">No values flagged as missed yet. Click ⚑ next to a value to flag it and set its corrected value.</div>
     </div>

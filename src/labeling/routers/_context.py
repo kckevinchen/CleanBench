@@ -8,12 +8,14 @@ dataclass lets each router module take one argument instead of seven.
 
 from __future__ import annotations
 
-import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Tuple
 
 from fastapi import HTTPException
+
+from ..run_cache import RunCache
+from ..runs import RunRegistry
+from ..workspace import resolve_run_dir
 
 
 @dataclass
@@ -22,12 +24,8 @@ class RouterContext:
     outputs_dir: Path
     static_dir: Path
     annotator: str
-    registry: Any  # RunRegistry - avoids circular import
-    jobs: Any  # JobManager - avoids circular import
-    cache: Any  # RunCache - avoids circular import
-
-    _diff_lock: threading.Lock = field(default_factory=threading.Lock)
-    _diff_cache: Dict[Tuple[Any, ...], Any] = field(default_factory=dict)
+    registry: RunRegistry
+    cache: RunCache
 
     # ------------------------------------------------------------------
     # Shared helpers (formerly closures in ``create_app``).
@@ -40,23 +38,7 @@ class RouterContext:
         rejected so ``shutil.rmtree`` and friends cannot follow them
         outside the workbench.
         """
-        if (
-            not run_id
-            or run_id in (".", "..")
-            or "/" in run_id
-            or "\\" in run_id
-            or "\x00" in run_id
-        ):
-            raise HTTPException(400, f"invalid run_id: {run_id!r}")
-        outputs_root = self.outputs_dir.resolve()
-        rd = (self.outputs_dir / run_id).resolve()
-        try:
-            rd.relative_to(outputs_root)
-        except ValueError as exc:
-            raise HTTPException(400, f"invalid run_id: {run_id!r}") from exc
-        if rd == outputs_root or rd.parent != outputs_root:
-            raise HTTPException(400, f"invalid run_id: {run_id!r}")
-        return rd
+        return resolve_run_dir(self.outputs_dir, run_id)
 
     def run_dir_or_404(self, run_id: str) -> Path:
         rd = self.safe_run_dir(run_id)

@@ -9,10 +9,7 @@ The module is pure stdlib; tests cover:
 
 from __future__ import annotations
 
-import pytest
-
 from src.labeling.phone_format import (
-    PhoneCorrection,
     compute_majority_template,
     digits_only,
     find_phone_corrections,
@@ -21,7 +18,6 @@ from src.labeling.phone_format import (
     reformat_to_template,
     template_of,
 )
-
 
 # ---------------------------------------------------------------- helpers
 
@@ -56,13 +52,13 @@ def test_is_phone_shaped_accepts_standard_formats() -> None:
 
 def test_is_phone_shaped_rejects_obvious_non_phones() -> None:
     assert not is_phone_shaped("")
-    assert not is_phone_shaped("123")             # too few digits
+    assert not is_phone_shaped("123")  # too few digits
     assert not is_phone_shaped("12345678901234567")  # 17 digits, too many
-    assert not is_phone_shaped("Acme Corp")       # letters
-    assert not is_phone_shaped("1-800-FLOWERS")   # vanity letters
-    assert not is_phone_shaped("$575.00")         # currency
-    assert not is_phone_shaped("ID#12345678")     # '#'
-    assert not is_phone_shaped(None)              # type: ignore[arg-type]
+    assert not is_phone_shaped("Acme Corp")  # letters
+    assert not is_phone_shaped("1-800-FLOWERS")  # vanity letters
+    assert not is_phone_shaped("$575.00")  # currency
+    assert not is_phone_shaped("ID#12345678")  # '#'
+    assert not is_phone_shaped(None)  # type: ignore[arg-type]
 
 
 def test_is_phone_shaped_rejects_extensions() -> None:
@@ -81,8 +77,8 @@ def test_is_phone_column_detects_mixed_format_phone_column() -> None:
     column = [
         "(575) 433-0200",
         "(575) 433-0201",
-        "(575) 4330202",     # missing space, will be a correction
-        "575-433-0203",      # different layout, will be a correction
+        "(575) 4330202",  # missing space, will be a correction
+        "575-433-0203",  # different layout, will be a correction
         "(575) 433-0204",
         "(575) 433-0205",
     ]
@@ -92,7 +88,11 @@ def test_is_phone_column_detects_mixed_format_phone_column() -> None:
 def test_is_phone_column_rejects_when_not_enough_phones() -> None:
     """Column with mostly names and one number -> not a phone column."""
     column = [
-        "Alice", "Bob", "Carol", "Diana", "Edward",
+        "Alice",
+        "Bob",
+        "Carol",
+        "Diana",
+        "Edward",
         "(575) 433-0200",
     ]
     assert not is_phone_column(column)
@@ -127,7 +127,7 @@ def test_compute_majority_template_picks_most_frequent() -> None:
         "(575) 433-0201",
         "(575) 433-0202",
         "(575) 433-0203",
-        "(575) 4330204",   # one stray missing-space variant
+        "(575) 4330204",  # one stray missing-space variant
     ]
     template, n = compute_majority_template(values)
     assert template == "(DDD) DDD-DDDD"
@@ -167,7 +167,7 @@ def test_reformat_to_template_fills_digits() -> None:
 def test_reformat_to_template_returns_none_on_digit_mismatch() -> None:
     """Don't silently pad or truncate -- digit-count mismatch is a
     real data problem, not a format variant."""
-    assert reformat_to_template("575433020", "(DDD) DDD-DDDD") is None    # too few
+    assert reformat_to_template("575433020", "(DDD) DDD-DDDD") is None  # too few
     assert reformat_to_template("57543302001", "(DDD) DDD-DDDD") is None  # too many
 
 
@@ -179,8 +179,8 @@ def test_find_phone_corrections_emits_canonical_for_minority_rows() -> None:
         (0, "(575) 433-0200"),
         (1, "(575) 433-0201"),
         (2, "(575) 433-0202"),
-        (3, "(575) 4330203"),         # missing space -> needs reformat
-        (4, "575-433-0204"),          # different layout -> needs reformat
+        (3, "(575) 4330203"),  # missing space -> needs reformat
+        (4, "575-433-0204"),  # different layout -> needs reformat
         (5, "(575) 433-0205"),
         (6, "(575) 433-0206"),
     ]
@@ -202,7 +202,7 @@ def test_find_phone_corrections_leaves_digit_mismatch_alone() -> None:
         (2, "(575) 433-0202"),
         (3, "(575) 433-0203"),
         (4, "(575) 433-0204"),
-        (5, "433-0205"),              # 7 digits only; different identity
+        (5, "433-0205"),  # 7 digits only; different identity
     ]
     majority, corrections = find_phone_corrections(rows, min_phone_rows=5)
     assert majority == ("(DDD) DDD-DDDD", 10)

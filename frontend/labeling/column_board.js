@@ -51,7 +51,7 @@ const state = {
   run_id: RUN_ID,
   meta: null,           // run summary {run_id, run_dir, sources: [...]}
   queue: [],            // full queue payload
-  filter: { source: "", status: "unlabeled", draft: "yes" },
+  filter: { source: "", status: "unlabeled", draft: "" },
   active: null,         // {source, column}
   // Per-active-column working state:
   values: [],           // [{value, count}]
@@ -143,9 +143,10 @@ async function refreshAll() {
       api(`/api/runs/${encodeURIComponent(RUN_ID)}/inconsistency-columns`),
     ]);
     state.meta = meta;
+    $("#report-link").hidden = !meta.has_report;
     state.queue = queue.items || [];
     // Surfaced separately by the endpoint so we can show a
-    // headline like "775 candidate column(s), 51 with LLM draft".
+    // headline like "775 candidate column(s), 51 with imported proposals".
     state.queueTotalWithDraft =
       typeof queue.total_with_draft === "number"
         ? queue.total_with_draft
@@ -166,7 +167,7 @@ function renderRunMeta() {
     `<code>${escape(m.run_id)}</code> · ` +
     `${escape((m.sources || []).length)} source(s) · ` +
     `${fmt(total)} candidate column(s) · ` +
-    `<strong>${fmt(withDraft)}</strong> with LLM draft`;
+    `<strong>${fmt(withDraft)}</strong> with imported proposals`;
 }
 
 function populateSourceFilter() {
@@ -383,7 +384,7 @@ async function openColumn(source, column) {
         `stopped=${escape(state.draft.stopped_reason)} · ` +
         `GT=${(state.draft.gt_missing_mass ?? 0).toFixed(3)}`;
     } else {
-      $("#cb-draft-meta").textContent = "· no LLM draft for this column";
+      $("#cb-draft-meta").textContent = "· no imported proposals for this column";
     }
     state.activeClusterIdx = state.clusters.length ? 0 : -1;
     rerenderCenter();
@@ -590,6 +591,7 @@ function valueClusterMembership() {
 
 function rerenderValues() {
   const list = $("#cb-value-list");
+  const singletonsOpen = list.querySelector(".cb-singletons")?.open || false;
   const q = ($("#cb-value-search").value || "").trim().toLowerCase();
   const membership = valueClusterMembership();
   const fnMembership = fnValueMembership();
@@ -640,7 +642,7 @@ function rerenderValues() {
   };
   let html = rows.map(renderRow).join("");
   if (singletons.length) {
-    html += `<details class="cb-singletons">
+    html += `<details class="cb-singletons"${singletonsOpen ? " open" : ""}>
       <summary class="muted">${fmt(singletons.length)} rare value(s) (count = 1) — usually safe to skip</summary>
       ${singletons.map(renderRow).join("")}
     </details>`;
@@ -872,7 +874,7 @@ function rerenderClusters() {
     return;
   }
   if (!state.clusters.length) {
-    box.innerHTML = `<div class="placeholder muted">No LLM clusters for this column. Use the value picker on the right to add one manually — or pick a different status (e.g. <em>no_inconsistency</em>) and save.</div>`;
+    box.innerHTML = `<div class="placeholder muted">No imported clusters for this column. Use the value picker on the right to add one manually — or pick a different status (e.g. <em>no_inconsistency</em>) and save.</div>`;
     meta.textContent = "";
     bulk.hidden = true;
     return;
@@ -1196,14 +1198,14 @@ async function onSave() {
     source: state.active.source,
     column: state.active.column,
     status,
-    drop_reason: status.startsWith("dropped_") ? state.drop_reason.trim() : null,
+    drop_reason: status.startsWith("dropped_") ? state.drop_reason.trim() : "",
     clusters: acceptedClusters.map((c) => ({
       cluster_id: c.cluster_id,
       kind: c.kind,
       canonical_value: c.canonical,
       values: c.values.map((v) => ({ value: v.value, count: v.count })),
     })),
-    note: state.note || null,
+    note: state.note || "",
   };
   state.saving = true;
   $("#cb-save").disabled = true;

@@ -118,7 +118,7 @@ _MULTI_CANONICAL_KINDS = frozenset(
 # Verdicts considered "interesting" enough to materialise into the
 # benchmark (TP-wins union rule). Re-exported for callers (the export
 # script and the live batch endpoint both need this).
-INTERESTING_STATUSES: Tuple[str, ...] = ("tp", "unsure")
+INTERESTING_STATUSES: Tuple[str, ...] = ("tp", "partial", "unsure")
 
 
 # ---------------------------------------------------------------------
@@ -474,6 +474,8 @@ def resolve_csv_map(run_dir: Path) -> Dict[str, Path]:
     out: Dict[str, Path] = {}
     for p in paths:
         pp = Path(p)
+        if not pp.is_absolute():
+            pp = run_dir / pp
         out[pp.name] = pp
     return out
 
@@ -490,7 +492,7 @@ def format_cluster_block(ctx: ClusterCtx) -> str:
     style_line = f"  style: {ctx.target_style}" if ctx.target_style else ""
     values_repr = json.dumps(sorted(ctx.values), ensure_ascii=False)
     lines = [
-        f"- Cluster {ctx.local_id} " f"(kind={ctx.kind}, verdict={verdict})",
+        f"- Cluster {ctx.local_id} (kind={ctx.kind}, verdict={verdict})",
         f"  values: {values_repr}",
     ]
     if canon_line:

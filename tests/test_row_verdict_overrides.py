@@ -33,9 +33,14 @@ def _fd_cluster() -> dict:
 
 def _cluster_label() -> Label:
     return Label(
-        target=LabelTarget.CLUSTER, target_id="fd1",
-        source="a.csv", row=3, column=None,
-        columns=["zip", "state"], status=LabelStatus.TP, annotator="t",
+        target=LabelTarget.CLUSTER,
+        target_id="fd1",
+        source="a.csv",
+        row=3,
+        column=None,
+        columns=["zip", "state"],
+        status=LabelStatus.TP,
+        annotator="t",
     )
 
 
@@ -47,7 +52,9 @@ def _materialize(store, overrides):
     return {
         (c.row, c.column): c
         for c in materialize_label_benchmark(
-            [_fd_cluster()], store, row_verdict_overrides=overrides,
+            [_fd_cluster()],
+            store,
+            row_verdict_overrides=overrides,
         )
     }
 
@@ -72,7 +79,8 @@ def test_peer_override_carries_its_own_corrected_value(tmp_path: Path) -> None:
     store = LabelStore(tmp_path / "labels.jsonl")
     store.append(_cluster_label())
     by_key = _materialize(
-        store, {("a.csv", 58, "state"): _ov(58, "state", LabelStatus.TP, corrected_value="CA")},
+        store,
+        {("a.csv", 58, "state"): _ov(58, "state", LabelStatus.TP, corrected_value="CA")},
     )
     assert by_key[(58, "state")].label == "error"
     assert by_key[(58, "state")].corrected_value == "CA"

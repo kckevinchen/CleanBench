@@ -65,7 +65,6 @@ def _read_verifications(run_dir: Path) -> Dict[str, Dict[str, Any]]:
 
 
 def register(app: FastAPI, ctx: RouterContext) -> None:
-    cache = ctx.cache
 
     # Per-app store cache, identical to the closure version in the
     # pre-split create_app.
@@ -73,7 +72,7 @@ def register(app: FastAPI, ctx: RouterContext) -> None:
     lock = threading.Lock()
 
     def _store_for(run_id: str) -> RelationReviewStore:
-        rd = cache._safe_run_dir(run_id)
+        rd = ctx.safe_run_dir(run_id)
         if not rd.is_dir():
             raise HTTPException(404, f"run not found: {run_id}")
         with lock:
@@ -110,7 +109,7 @@ def register(app: FastAPI, ctx: RouterContext) -> None:
             (``approved`` | ``rejected`` | ``added`` | ``cleared`` |
             ``unreviewed``).
         """
-        rd = cache._safe_run_dir(run_id)
+        rd = ctx.safe_run_dir(run_id)
         if not rd.is_dir():
             raise HTTPException(404, f"run not found: {run_id}")
 

@@ -606,7 +606,11 @@ class RunRegistry:
             return []
         runs: List[RunInfo] = []
         for child in sorted(self.outputs_dir.iterdir(), reverse=True):
-            if not child.is_dir():
+            if (
+                child.name.startswith(".")
+                or not child.is_dir()
+                or child.resolve().parent != self.outputs_dir.resolve()
+            ):
                 continue
             # Heuristic: real runs have at least summary.json OR
             # clusters.json OR (for relation-discovery runs) relations.jsonl.
@@ -615,9 +619,7 @@ class RunRegistry:
                 and not (child / "clusters.json").exists()
                 and not (child / "relations.jsonl").exists()
             ):
-                # Still include it if a job is currently writing - surface
-                # the dir but mark artifacts absent.
-                pass
+                continue
             runs.append(_parse_run_dir(child))
         return runs
 

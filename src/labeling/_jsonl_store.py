@@ -1,35 +1,8 @@
-"""Shared base for the append-only JSONL label/decision stores.
+"""Durable append-only JSONL histories with thread and process coordination.
 
-Every store under ``src/labeling`` follows the same recipe: one file, one
-JSON record per line, ``O_APPEND`` + ``fsync`` per write, an in-memory
-``latest``-per-key index rebuilt on reload, and latest-wins semantics.
-``JsonlStore`` factors that recipe out so the six concrete stores
-(``LabelStore``, ``ColumnClusterStore``, ``CellNotesStore``,
-``ExclusionStore``, ``MultiTableLabelStore``, ``RelationReviewStore``)
-each shrink to: declare the record ``model``, implement ``_key`` (the
-dedup key), and expose their domain-specific query/write *names* as thin
-wrappers over the primitives here.
-
-The base is also **self-healing against out-of-band writes**: an offline tool
-or a second worker can append to the same file while a server holds a store
-cached. Each read
-checks the file's ``(mtime, size)`` and reloads if it changed underneath
-us; our own appends refresh that signature so in-process writes never
-trigger a redundant reload. (Previously only ``LabelStore`` and
-``ColumnClusterStore`` had this; centralising it fixes the other four.)
-
-Design notes for subclasses:
-
-* Public method *names* deliberately live on the subclass (``append`` vs
-  ``upsert`` vs ``add``; ``latest_by_target`` vs ``active`` vs ...), so
-  call sites and tests are unchanged. They delegate to the protected
-  primitives ``_append`` / ``_append_many`` / ``_all`` / ``_latest_map`` /
-  ``_latest_get``.
-* The read primitives self-heal (``_reload_if_changed``) before reading,
-  so every subclass query sees out-of-band writes for free.
-* Tombstone semantics (UNLABELED status, empty note, ``deleted=True``)
-  stay in the subclass: the base only keeps the latest record per key;
-  what "active" means is the subclass's call.
+Writers use a sidecar lock, complete short writes, and fsync before reporting
+success. Malformed history is preserved; a missing final newline is repaired
+by appending a separator, so a crash cannot swallow the next valid record.
 """
 
 from __future__ import annotations
@@ -37,142 +10,150 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Generic, List, Optional, Tuple, TypeVar
+from typing import Generic, Iterator, TypeVar
 
-from pydantic import BaseModel
+from filelock import FileLock
+from pydantic import BaseModel, ValidationError
+
+from .file_io import annotation_lock
 
 logger = logging.getLogger(__name__)
-
 T = TypeVar("T", bound=BaseModel)
 K = TypeVar("K")
+FileSignature = tuple[int, int, int, int]
 
 
 class JsonlStore(Generic[T, K]):
-    #: pydantic record model; subclass sets this (e.g. ``model = Label``).
+    """Latest-wins index over an append-only history, shared by all stores."""
+
     model: type[T]
 
     def __init__(self, path: Path) -> None:
-        self.path = Path(path)
+        self.path = Path(path).resolve()
         self._lock = threading.Lock()
-        self._records: List[T] = []
-        self._latest: Dict[K, T] = {}
-        # (mtime, size) of the file as of our last read/write. Lets us
-        # detect an out-of-band append and reload without thrashing on
-        # our own in-process writes.
-        self._file_sig: Optional[Tuple[float, int]] = None
+        self._file_lock = FileLock(str(self.path) + ".lock", timeout=30)
+        self._records: list[T] = []
+        self._latest: dict[K, T] = {}
+        self._file_sig: FileSignature | None = None
         self.reload()
 
-    # ----------------------------------------------------- subclass hook
-
     def _key(self, record: T) -> K:
-        """Extract the latest-wins dedup key from a record."""
         raise NotImplementedError
 
-    # --------------------------------------------------------------- IO
+    @staticmethod
+    def _signature(stat: os.stat_result) -> FileSignature:
+        return stat.st_dev, stat.st_ino, stat.st_mtime_ns, stat.st_size
 
-    def _current_sig(self) -> Optional[Tuple[float, int]]:
+    def _current_sig(self) -> FileSignature | None:
         try:
-            st = self.path.stat()
-            return (st.st_mtime, st.st_size)
-        except OSError:
+            return self._signature(self.path.stat())
+        except FileNotFoundError:
             return None
 
+    @contextmanager
+    def _synchronized(self, *, create: bool = False) -> Iterator[None]:
+        if create:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        if self.path.parent.exists():
+            with annotation_lock(self.path.parent):
+                with self._lock, self._file_lock:
+                    yield
+        else:
+            with self._lock:
+                yield
+
     def _reload_locked(self) -> None:
-        """Re-read the JSONL. Caller must hold ``self._lock``."""
-        self._records = []
-        self._latest = {}
-        if self.path.exists():
-            with self.path.open("r", encoding="utf-8") as fh:
-                for line_no, raw in enumerate(fh, start=1):
-                    line = raw.strip()
-                    if not line:
+        records: list[T] = []
+        latest: dict[K, T] = {}
+        signature = None
+        try:
+            stream = self.path.open("r", encoding="utf-8", errors="replace")
+        except FileNotFoundError:
+            stream = None
+        if stream is not None:
+            with stream:
+                for line_no, line in enumerate(stream, start=1):
+                    if not line.strip():
                         continue
                     try:
                         record = self.model.model_validate_json(line)
-                    except Exception as exc:  # noqa: BLE001 - skip malformed
-                        # Crash-safe by design: a partial write or manual
-                        # edit leaves a malformed line; later writes still
-                        # succeed and we simply skip the bad line.
-                        logger.debug(
-                            "%s: skipping malformed line %d in %s (%s): %r",
-                            type(self).__name__,
-                            line_no,
-                            self.path,
-                            exc,
-                            line[:200],
+                    except ValidationError:
+                        logger.warning(
+                            "Ignoring malformed history record in %s at line %d", self.path, line_no
                         )
                         continue
-                    self._records.append(record)
-                    self._latest[self._key(record)] = record
-        self._file_sig = self._current_sig()
+                    records.append(record)
+                    latest[self._key(record)] = record
+                signature = self._signature(os.fstat(stream.fileno()))
+        self._records, self._latest, self._file_sig = records, latest, signature
+
+    def _refresh_locked(self) -> None:
+        if self._current_sig() != self._file_sig:
+            self._reload_locked()
 
     def reload(self) -> None:
-        """Re-read the JSONL from disk. Called on startup and on-demand."""
-        with self._lock:
+        with self._synchronized():
             self._reload_locked()
 
     def _reload_if_changed(self) -> None:
-        """Reload iff the file changed underneath us since our last
-        read/write (an out-of-band writer appended). Our own appends
-        refresh ``_file_sig`` so they never trigger a reload."""
-        with self._lock:
-            if self._current_sig() != self._file_sig:
-                self._reload_locked()
+        with self._synchronized():
+            self._refresh_locked()
+
+    @staticmethod
+    def _write_all(fd: int, payload: bytes) -> None:
+        remaining = memoryview(payload)
+        while remaining:
+            written = os.write(fd, remaining)
+            if written <= 0:
+                raise OSError("History write made no progress")
+            remaining = remaining[written:]
 
     def _write_lines_locked(self, payload: str) -> None:
-        """Append ``payload`` (already newline-terminated) durably. Caller
-        must hold ``self._lock``."""
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        # O_APPEND guarantees atomic append on POSIX for writes <= PIPE_BUF.
-        fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o644)
         try:
-            os.write(fd, payload.encode("utf-8"))
+            if os.lseek(fd, 0, os.SEEK_END):
+                os.lseek(fd, -1, os.SEEK_END)
+                if os.read(fd, 1) != b"\n":
+                    self._write_all(fd, b"\n")
+            self._write_all(fd, payload.encode("utf-8"))
             os.fsync(fd)
+        except BaseException:
+            # The next operation must inspect any partially written tail.
+            self._file_sig = None
+            raise
         finally:
             os.close(fd)
 
     def _append(self, record: T) -> T:
-        """Persist ``record`` and update the in-memory index atomically."""
-        line = record.model_dump_json() + "\n"
-        with self._lock:
-            self._write_lines_locked(line)
-            self._records.append(record)
-            self._latest[self._key(record)] = record
-            self._file_sig = self._current_sig()
+        self._append_many([record])
         return record
 
-    def _append_many(self, records: List[T]) -> List[T]:
-        """Persist ``records`` in a single fsync.
-
-        Equivalent to calling :meth:`_append` per record but folds the
-        write + fsync into one syscall pair, which matters on slow disks
-        (~10 ms fsync each): a 30-record batch drops from ~300 ms to ~10 ms.
-        """
+    def _append_many(self, records: list[T]) -> list[T]:
         if not records:
             return []
-        payload = "".join(r.model_dump_json() + "\n" for r in records)
-        with self._lock:
+        payload = "".join(record.model_dump_json() + "\n" for record in records)
+        with self._synchronized(create=True):
+            self._refresh_locked()
             self._write_lines_locked(payload)
-            for r in records:
-                self._records.append(r)
-                self._latest[self._key(r)] = r
+            for record in records:
+                self._records.append(record)
+                self._latest[self._key(record)] = record
             self._file_sig = self._current_sig()
         return list(records)
 
-    # ----------------------------------------- read primitives (self-heal)
-
-    def _all(self) -> List[T]:
-        self._reload_if_changed()
-        with self._lock:
+    def _all(self) -> list[T]:
+        with self._synchronized():
+            self._refresh_locked()
             return list(self._records)
 
-    def _latest_map(self) -> Dict[K, T]:
-        self._reload_if_changed()
-        with self._lock:
+    def _latest_map(self) -> dict[K, T]:
+        with self._synchronized():
+            self._refresh_locked()
             return dict(self._latest)
 
-    def _latest_get(self, key: K) -> Optional[T]:
-        self._reload_if_changed()
-        with self._lock:
+    def _latest_get(self, key: K) -> T | None:
+        with self._synchronized():
+            self._refresh_locked()
             return self._latest.get(key)

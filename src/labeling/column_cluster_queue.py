@@ -58,7 +58,7 @@ def iter_column_cluster_targets(
             store = ColumnClusterStore(cc_path)
         except Exception as exc:  # noqa: BLE001 - never break callers on a read error
             logger.warning(
-                "iter_column_cluster_targets: ColumnClusterStore load " "failed for %s: %s",
+                "iter_column_cluster_targets: ColumnClusterStore load failed for %s: %s",
                 cc_path,
                 exc,
             )

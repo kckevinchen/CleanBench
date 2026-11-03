@@ -124,7 +124,7 @@ def _label_from_involved(involved: Iterable[ClusterCtx]) -> str:
     """TP-wins union rule. Caller must ensure ``involved`` is non-empty
     and contains at least one TP or unsure entry."""
     statuses = {ctx.status for ctx in involved}
-    if "tp" in statuses:
+    if statuses.intersection({"tp", "partial"}):
         return "error"
     if "unsure" in statuses:
         return "ambiguous"
@@ -308,7 +308,7 @@ def materialize_inconsistency_benchmark(
     for i, grp in enumerate(groups):
         chosen_ctx = None
         for ctx in grp.involved:
-            if ctx.status not in ("tp", "unsure"):
+            if ctx.status not in ("tp", "partial", "unsure"):
                 continue
             if not ctx.value_corrections:
                 continue
@@ -396,7 +396,7 @@ def materialize_inconsistency_benchmark(
     for i, grp in enumerate(groups):
         has_override = i in overrides_by_idx
         for ctx in grp.involved:
-            if ctx.status in ("tp", "unsure"):
+            if ctx.status in ("tp", "partial", "unsure"):
                 cluster_to_groups[ctx.global_id].append(i)
                 cluster_status[ctx.global_id] = ctx.status
                 if has_override:

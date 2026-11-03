@@ -15,10 +15,11 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 
 from ._helpers import _scalar
 from .inconsistency_export import materialize_inconsistency_benchmark
+from .reviewed_columns import materialize_reviewed_columns
 from .schema import BenchmarkCell, ExclusionScope
 
 if TYPE_CHECKING:
-    from .app import RunContext
+    from .run_context import RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -215,26 +216,13 @@ def _deduplicate_benchmark_cells(
 def _materialize_inconsistency_cells_for_export(
     ctx: "RunContext",
 ) -> List[Any]:
-    """Cache-only inconsistency benchmark cells for the live
-    export endpoints.
+    """Combine local cache replay with explicit human column-board decisions.
 
-    Same materialiser the offline
-    ``experiments.export_inconsistency_benchmark_with_llm`` CLI
-    uses, but with ``dry_run=True`` and ``llm_client=None`` so
-    the request handler never spends LLM dollars: every prompt
-    is looked up in ``inconsistency_llm_cache.jsonl`` and any
-    groups without a cache hit fall back to either the operator's
-    saved ``value_corrections`` (authoritative) or the cluster-
-    rescue null-emit path. Returns ``[]`` if the run has no
-    inconsistency artifacts (no ``column_cluster_drafts.jsonl``
-    or no TP/unsure column-cluster verdicts).
-
-    Failures propagate to the export request. A failed download is safer than
-    silently emitting an incomplete benchmark that omits accepted
-    inconsistency labels.
+    Per-cluster verdicts remain authoritative. All exceptions propagate so a
+    failed download cannot silently omit accepted labels.
     """
     return materialize_inconsistency_benchmark(
         ctx.run_dir,
         dry_run=True,
         llm_client=None,
-    )
+    ) + materialize_reviewed_columns(ctx)

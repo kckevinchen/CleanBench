@@ -6,8 +6,9 @@ export. It does not generate model proposals or call external services.
 ## 1. Import tables
 
 Start the server as shown in the README. On the home page, choose a new run name
-and one or more UTF-8 CSVs. Each CSV needs a header row, unique column names, and
-at least one data row. Source filenames must be unique within a run.
+and one or more UTF-8 CSVs. Each CSV needs a header row, column names that remain
+unique after trimming surrounding whitespace, and at least one data row.
+Source filenames must be unique within a run.
 
 You can provide a candidate JSONL file to limit the queue to selected cells:
 

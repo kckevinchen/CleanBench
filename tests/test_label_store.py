@@ -10,14 +10,17 @@ import threading
 from pathlib import Path
 from typing import List
 
-import pytest
-
 from src.labeling.schema import Label, LabelStatus, LabelTarget, cell_target_id
 from src.labeling.store import LabelStore
 
 
-def _label(target_id: str, *, status: LabelStatus = LabelStatus.TP,
-            annotator: str = "tester", note: str = "") -> Label:
+def _label(
+    target_id: str,
+    *,
+    status: LabelStatus = LabelStatus.TP,
+    annotator: str = "tester",
+    note: str = "",
+) -> Label:
     return Label(
         target=LabelTarget.CLUSTER,
         target_id=target_id,
@@ -62,9 +65,7 @@ class TestAppendAndReload:
         h = s.history("t1")
         assert [r.note for r in h] == ["first", "second"]
 
-    def test_creates_parent_directory_on_first_append(
-        self, tmp_path: Path
-    ) -> None:
+    def test_creates_parent_directory_on_first_append(self, tmp_path: Path) -> None:
         nested = tmp_path / "deep" / "down" / "labels.jsonl"
         s = LabelStore(nested)
         s.append(_label("t1"))
@@ -136,9 +137,7 @@ class TestMalformedRecovery:
 
 
 class TestConcurrentAppend:
-    def test_threaded_appends_preserve_all_records(
-        self, tmp_path: Path
-    ) -> None:
+    def test_threaded_appends_preserve_all_records(self, tmp_path: Path) -> None:
         path = tmp_path / "labels.jsonl"
         s = LabelStore(path)
         n_threads = 8
@@ -195,14 +194,17 @@ class TestAppendMany:
         assert s.all() == []
 
     def test_latest_collision_resolves_to_last_in_batch(
-        self, tmp_path: Path,
+        self,
+        tmp_path: Path,
     ) -> None:
         path = tmp_path / "labels.jsonl"
         s = LabelStore(path)
-        s.append_many([
-            _label("dup", status=LabelStatus.TP, note="first"),
-            _label("dup", status=LabelStatus.FP, note="second"),
-        ])
+        s.append_many(
+            [
+                _label("dup", status=LabelStatus.TP, note="first"),
+                _label("dup", status=LabelStatus.FP, note="second"),
+            ]
+        )
         latest = s.latest_for("dup")
         assert latest is not None
         assert latest.status == LabelStatus.FP

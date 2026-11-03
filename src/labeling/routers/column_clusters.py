@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..app import RunContext
+    from ..run_context import RunContext
 
 import json
 import logging
@@ -544,7 +544,7 @@ def register(app: FastAPI, router_ctx: RouterContext) -> None:
         ``{"draft": null}``. When multiple drafts exist for the same
         (source, column), latest-wins (the file is append-only).
         """
-        rd = cache._safe_run_dir(run_id)
+        rd = router_ctx.safe_run_dir(run_id)
         if not rd.is_dir():
             raise HTTPException(404, f"run not found: {run_id}")
         drafts_path = rd / "column_cluster_drafts.jsonl"

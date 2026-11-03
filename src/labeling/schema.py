@@ -582,7 +582,7 @@ class StdCluster(BaseModel):
         for cv in self.values:
             if cv.value in seen:
                 raise ValueError(
-                    f"cluster {self.cluster_id!r}: duplicate value " f"{cv.value!r} inside cluster"
+                    f"cluster {self.cluster_id!r}: duplicate value {cv.value!r} inside cluster"
                 )
             seen.add(cv.value)
         if self.canonical_value is not None and self.canonical_value not in seen:
@@ -628,8 +628,7 @@ class ColumnClustersIn(BaseModel):
         else:
             if self.clusters:
                 raise ValueError(
-                    f"status={self.status.value!r} requires no clusters; "
-                    f"got {len(self.clusters)}"
+                    f"status={self.status.value!r} requires no clusters; got {len(self.clusters)}"
                 )
         # Unique cluster_ids within the record.
         seen_ids: set = set()
