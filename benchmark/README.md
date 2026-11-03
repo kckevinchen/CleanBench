@@ -1,90 +1,92 @@
-# Frozen CleanBench benchmark
+# CleanBench benchmark
 
-The release includes 1,000 tables with 364,804 cells, **1,409 error cells**, and
-**842 ambiguous cells**. Labels and accepted corrections are copied from the
-frozen benchmark without relabeling or regeneration.
+The benchmark contains 1,000 tables with 364,804 cells, including 1,409 error
+cells and 842 ambiguous cells. Dataset IDs are `pbi_500` for relational tables
+and `bing21_500` for spreadsheets; each contains 500 tables.
 
-| File | Purpose |
+## Files
+
+| File | Contents |
 |---|---|
-| `benchmark_cell.json` | 2,251 cell-level JSONL records: 1,409 error and 842 ambiguous |
-| `benchmark_row.json` | 46 additional row/relation/cross-table JSONL records: 25 error and 21 ambiguous |
+| `benchmark_cell.json` | 2,251 cell labels: 1,409 error and 842 ambiguous |
+| `benchmark_row.json` | 46 supplementary row/relation labels: 25 error and 21 ambiguous |
 | `ignored.jsonl` | 65 authoritative exclusion scopes |
-| `neutral_cells.jsonl` | Legacy skip/exclusion annotations (empty-column skips are row-level) |
-| `sanitized_sources.zip` | 1,000 source CSVs, source checksums, and original-row mapping |
-| `release_manifest.json` | Artifact checksums, frozen provenance digest, and counts |
-| `eval_cleanbench.py` | Standalone cell detection/correction scorer |
+| `neutral_cells.jsonl` | Legacy skip and exclusion annotations |
+| `sanitized_sources.zip` | Source CSVs, checksums, and original-row mappings |
+| `release_manifest.json` | Artifact SHA-256 checksums and release counts |
+| `eval_cleanbench.py` | Cell detection and correction scorer |
 
-The row/relation annotations are supplementary; their counts are not added to
-the 1,409 cell errors. The cell scorer does not evaluate row/relation tasks.
-Files with `.json` in their name are JSONL, not JSON arrays.
+The two label files are **JSONL**, one object per line, despite their `.json`
+extension. `release_manifest.json` is a regular JSON object. Supplementary
+row/relation labels are separate from the 1,409 cell errors and are not evaluated
+by the cell scorer.
 
-## Cell schema
+## Cell labels
 
-Each record identifies `(dataset, source, row, column)`:
+Each record identifies `(dataset, source, row, column)`.
 
-- `dataset`: `pbi_500` (relational) or `bing21_500` (spreadsheet).
-- `source`: the CSV basename, including `.csv`.
-- `row`: original zero-based data-row number, excluding the header.
-- `column`: column name; trim surrounding header whitespace when matching CSV headers.
-- `original_value`: the observed cell value under the construction loader's whitespace handling.
-- `status`: `error` or `ambiguous`.
-- `error_types`: confirmed error categories; a cell can have several.
-- `corrected_value`: a string, list of acceptable strings, or `null`.
-- `explanation`: the frozen explanation associated with the reviewed decision.
+| Field | Meaning |
+|---|---|
+| `dataset` | `pbi_500` or `bing21_500` |
+| `source` | CSV basename, including `.csv` |
+| `row` | Original zero-based data-row index, excluding the header |
+| `column` | Column name; trim surrounding header whitespace when matching |
+| `original_value` | Observed value under the construction loader's whitespace handling |
+| `status` | `error` or `ambiguous` |
+| `error_types` | Confirmed error categories |
+| `corrected_value` | Accepted string, list of accepted strings, or `null` |
+| `explanation` | Frozen explanation associated with the reviewed decision |
 
-Absence from the cell-label file means no labeled error under the exhaustive
-review protocol, unless an immunity record applies. It is not an independent
-per-cell certificate of cleanliness.
+A cell absent from the label file has no labeled error under the review
+protocol, subject to the immunity records below.
 
-## Source tables and coordinates
+## Sources and row coordinates
 
-Extract `sanitized_sources.zip` into `benchmark/sanitized_sources/`:
+From the repository root:
 
 ```bash
 python -m zipfile -e benchmark/sanitized_sources.zip benchmark/sanitized_sources
 ```
 
-The archive contains `pbi_500/` and `bing21_500/`, each with 500 CSVs,
-`MANIFEST.json` with every source SHA-256 and shape, and `_ROW_MAP.json`.
-For a mapped table, `exported_to_source[i]` is the original row for exported
-data row `i`. Other tables use identity mapping. Keep these coordinates when
-sharing predictions. Do not renumber frozen labels after extraction.
+The archive has `pbi_500/` and `bing21_500/` directories, a `MANIFEST.json` with
+source checksums and table shapes, and `_ROW_MAP.json`. For mapped tables,
+`exported_to_source[i]` gives the original row for exported row `i`; all other
+tables use identity mapping. Frozen labels always use original row coordinates.
 
-The source archive was assembled from the frozen source-table entries used by
-the paper. It contains observed tables only: no model predictions, repaired
-reference tables, training splits, or experiment results. Internal absolute
-paths and experiment metadata are omitted.
+## Scoring
 
-## Cell scoring
+The scorer accepts JSONL or CSV predictions with `dataset`, `source`, `row`, and
+`column`. Correction scoring also requires `corrected_value`.
 
 ```bash
 python benchmark/eval_cleanbench.py --predictions predictions.jsonl
 python benchmark/eval_cleanbench.py --predictions predictions.csv --task end_to_end
 ```
 
-Predictions need `dataset`, `source`, `row`, and `column`. Correction scoring
-also needs `corrected_value`; use `--corrected-col` for another field name.
-Pass `--use-row-map` if prediction rows refer to exported CSV positions.
-Use `--details-csv details.csv` for classifications by cell.
+Use `--use-row-map` when prediction rows refer to extracted CSV positions.
+`--corrected-col` selects another correction field, and `--details-csv details.csv`
+writes classifications by cell. Run `--help` for all input options.
 
-Detection counts a prediction on an error cell as TP, an unpredicted error as
-FN, and a prediction on any other scored cell as FP. Ambiguous cells are
-FP-immune. Exclusion scopes and per-cell skips are FP/FN-immune. A legacy skip
-with an empty column denotes a row-level finding and does not mask an entire
-row in cell scoring. `ignored.jsonl` is authoritative over legacy exclusion
-projections in `neutral_cells.jsonl`.
+Detection counts predicted error cells as TP, missed error cells as FN, and
+other scored predictions as FP. Ambiguous cells are FP-immune. Exclusion scopes
+and per-cell skips are FP/FN-immune. `ignored.jsonl` takes precedence over legacy
+exclusion projections in `neutral_cells.jsonl`; a legacy skip with an empty
+column refers to a row-level finding and does not mask that row in cell scoring.
 
-For end-to-end correction, the predicted correction must match an accepted
-value. A wrong correction on an error cell contributes both an FP and an FN.
-The scorer strips surrounding whitespace and compares strings case-sensitively.
-A prediction list matches when it contains an accepted correction. See its `--help` for input column options.
+Correction scoring additionally requires an accepted correction. A wrong
+correction on an error cell contributes both an FP and an FN. String comparison
+is case-sensitive after trimming surrounding whitespace; a prediction list
+matches if it contains an accepted value. Report micro-F1 from summed TP, FP,
+and FN, and disclose any supervised use of benchmark labels.
 
-Report micro-F1 from summed TP, FP and FN. Report any supervised use of these
-labels and keep evaluation labels separate from training data.
+## Provenance
 
-## Integrity and provenance
+The labels, accepted corrections, exclusions, and source CSVs are preserved from
+the frozen construction artifacts. Source identifiers and original-row mappings
+remain intact. Artifact hashes are recorded in `release_manifest.json`, and
+individual CSV hashes are in the archive's `MANIFEST.json`.
 
-`release_manifest.json` records artifact SHA-256 checksums and release totals.
-The source archive's `MANIFEST.json` records each CSV's checksum and shape;
-`_ROW_MAP.json` preserves original row coordinates. Source rights and
-construction notes are in [DATA_PROVENANCE.md](DATA_PROVENANCE.md).
+Tables were collected from public sources. The project's [MIT license](../LICENSE)
+covers project-authored code and does not grant new rights in third-party table
+content. Preserve source identifiers and any existing table notices when
+redistributing the data.
