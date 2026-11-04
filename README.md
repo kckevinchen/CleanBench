@@ -71,6 +71,10 @@ to ensure quality and coverage.
 </p>
 
 <p align="center">
+  <img src="docs/assets/inconsistency-errors.png" alt="Five real inconsistency examples: month abbreviations and capitalization within a column, mismatched payee IDs and an anomalous deadline across columns, and conflicting last names across tables." width="600">
+</p>
+
+<p align="center">
   <img src="docs/assets/error-distributions.png" alt="Distributions of errors across tables and error types: 456 relational and 376 spreadsheet tables contain no errors; spelling dominates relational errors, while inconsistency dominates spreadsheet errors." width="100%">
 </p>
 
@@ -332,9 +336,9 @@ If you use CleanBench, please cite the accompanying manuscript:
 Project code is [MIT licensed](LICENSE). This license does not relicense
 third-party table content; see [data provenance](benchmark/README.md#provenance).
 
-The six figures in [`docs/assets/`](docs/assets/) are reproduced from the
+The seven figures in [`docs/assets/`](docs/assets/) are reproduced from the
 accompanying CleanBench manuscript by Kaiwen Chen, Yeye He, Tal Kariv, Itay Ariav,
-Yair Helman, and Surajit Chaudhuri (Figures 2, 3, 4, 7, 9, and 11).
+Yair Helman, and Surajit Chaudhuri (Figures 2, 3, 4, 5, 7, 9, and 11).
 They retain the manuscript's
 [CC BY-NC-ND 4.0 license](https://creativecommons.org/licenses/by-nc-nd/4.0/),
 not the code's MIT license. Figures were extracted without changing their content.
