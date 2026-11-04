@@ -65,6 +65,9 @@ to ensure quality and coverage.
 
 <p align="center">
   <img src="docs/assets/spelling-errors.png" alt="Three real spelling errors: Acupunture, Wednusday, and Smooth Sliky Salty, alongside their accepted corrections." width="49%">
+</p>
+
+<p align="center">
   <img src="docs/assets/formatting-errors.png" alt="Three real formatting errors involving a trailing comma, phone-number spacing, and a missing apostrophe." width="49%">
 </p>
 
