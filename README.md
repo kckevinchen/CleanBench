@@ -29,12 +29,10 @@ look like errors. A method must find genuine mistakes without "fixing" valid dat
 CleanBench evaluates this challenge using **1,000 real-world tables with naturally
 occurring errors**, rather than synthetically injected mistakes. It contains
 **1,409 human-verified error cells among 364,804 cells**, spanning relational
-tables and spreadsheets. Repeated LLM queries surface candidates for human
-verification; an independent cell-by-cell audit checks label quality and coverage.
+tables and spreadsheets. Repeated LLM queries exhaustively surface candidates for human
+verification until statistical convergence; human labelers then review cell-by-cell 
+to ensure quality and coverage.
 
-This repository releases the **frozen benchmark, source tables, cell-level
-scorer, and local annotation workbench** used to support reproducible evaluation
-and further data-cleaning research.
 
 <p align="center">
   <img src="docs/assets/construction.png" alt="CleanBench construction: source selection, repeated LLM candidate generation, human verification, independent quality audit, and the final benchmark." width="100%">
@@ -44,20 +42,20 @@ and further data-cleaning research.
 
 | Source | Tables | Cells | Error cells | Ambiguous cells |
 |---|---:|---:|---:|---:|
-| Relational (`pbi_500`) | 500 | 142,459 | 347 | 384 |
-| Spreadsheet (`bing21_500`) | 500 | 222,345 | 1,062 | 458 |
+| Relational | 500 | 142,459 | 347 | 384 |
+| Spreadsheet | 500 | 222,345 | 1,062 | 458 |
 | **Total** | **1,000** | **364,804** | **1,409** | **842** |
 
 - **Real errors, not injected noise.** Tables are sampled from public Business
-  Intelligence models (`.pbix`) and spreadsheet workbooks (`.xlsx`), using the
-  first 100 rows of each selected table.
+  Intelligence models (`.pbix`) and spreadsheet workbooks (`.xlsx`).
 - **Clean tables matter too.** Errors occur in only **168 of 1,000 tables**.
   The remaining tables help test whether methods leave valid data unchanged.
 - **Uncertainty is explicit.** Suspicious values without sufficient evidence are
   labeled **ambiguous**, not forced into clean/error decisions. Error cells can
   have multiple accepted repairs.
 - **Exact cell-level evaluation.** Measure error detection and end-to-end
-  correction, rather than downstream model utility.
+  correction quality directly on source tables, focusing on data analytics use
+  cases rather than downstream model utility.
 
 ### What kinds of errors?
 
