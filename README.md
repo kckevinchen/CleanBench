@@ -67,13 +67,19 @@ to ensure quality and coverage.
   <img src="docs/assets/spelling-errors.png" alt="Three real spelling errors: Acupunture, Wednusday, and Smooth Sliky Salty, alongside their accepted corrections." width="49%">
 </p>
 
+<br>
+
 <p align="center">
   <img src="docs/assets/formatting-errors.png" alt="Three real formatting errors involving a trailing comma, phone-number spacing, and a missing apostrophe." width="49%">
 </p>
 
+<br>
+
 <p align="center">
   <img src="docs/assets/inconsistency-errors.png" alt="Five real inconsistency examples: month abbreviations and capitalization within a column, mismatched payee IDs and an anomalous deadline across columns, and conflicting last names across tables." width="400">
 </p>
+
+<br>
 
 <p align="center">
   <img src="docs/assets/error-distributions.png" alt="Distributions of errors across tables and error types: 456 relational and 376 spreadsheet tables contain no errors; spelling dominates relational errors, while inconsistency dominates spreadsheet errors." width="100%">
