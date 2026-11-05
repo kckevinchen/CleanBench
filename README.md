@@ -260,9 +260,3 @@ If you use CleanBench, please cite the accompanying manuscript:
 Project code is [MIT licensed](LICENSE). This license does not relicense
 third-party table content; see [data provenance](benchmark/README.md#provenance).
 
-The six figures in [`docs/assets/`](docs/assets/) are reproduced from the
-accompanying CleanBench manuscript by Kaiwen Chen, Yeye He, Tal Kariv, Itay Ariav,
-Yair Helman, and Surajit Chaudhuri (Figures 2, 3, 4, 5, 7, and 9).
-They retain the manuscript's
-[CC BY-NC-ND 4.0 license](https://creativecommons.org/licenses/by-nc-nd/4.0/),
-not the code's MIT license. Figures were extracted without changing their content.
