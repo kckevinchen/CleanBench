@@ -260,3 +260,10 @@ If you use CleanBench, please cite the accompanying manuscript:
 Project code is [MIT licensed](LICENSE). This license does not relicense
 third-party table content; see [data provenance](benchmark/README.md#provenance).
 
+
+## Reproduce Table 3
+
+Run `python scripts/reproduce_table3.py` to recompute Table 3 from the retained
+per-method outputs in a few seconds. Use `scripts/run_table3.py` to execute
+fresh method runs with a command plan. See
+[`reproducible_readme.md`](reproducible_readme.md) for both workflows.
