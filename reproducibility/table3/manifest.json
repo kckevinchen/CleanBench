@@ -419,11 +419,20 @@
       "predictions": "methods/gpt_6_astra_codex/run_03/predictions.jsonl",
       "counts": "methods/gpt_6_astra_codex/run_03/table_counts.jsonl",
       "metadata": "methods/gpt_6_astra_codex/run_03/run.json"
+    },
+    {
+      "identity": "gpt_6_astra_copilot/run_02",
+      "method": "GPT-6-astra (Copilot)",
+      "run": 2,
+      "point_view": false,
+      "predictions": "methods/gpt_6_astra_copilot/run_02/predictions.jsonl",
+      "counts": "methods/gpt_6_astra_copilot/run_02/table_counts.jsonl",
+      "metadata": "methods/gpt_6_astra_copilot/run_02/run.json"
     }
   ],
   "sha256": {
     "expected/table3_point.csv": "b2d65a7bb110b40df9e39bd917c4d910a88dfe4e445bf098a453de8f742393be",
-    "expected/table3_variability.csv": "6fa00a7b63a64aeeb97b67d1b74b185c045a1e117aa3f9540612bc4affb815a1",
+    "expected/table3_variability.csv": "b973e98548b4b8f9a8628b31a03c9b696a149b283962d55d007d353047b7b33b",
     "methods/bigdansing/run_01/predictions.jsonl": "69b27a55d01bf57870feea99a706ba52c94c78063dfa07f6ab8e42b0bee92df7",
     "methods/bigdansing/run_01/run.json": "3cd07557f795b50f15255305be935d0feb2345257ea66ca418224e116bbfc9a6",
     "methods/bigdansing/run_01/table_counts.jsonl": "92f20bbdef748f495c546c199ed37317f332a91113996d6a08937fa569d08a2c",
@@ -493,6 +502,9 @@
     "methods/gpt_6_astra_copilot/run_01/predictions.jsonl": "5f3ec8d30adf26b1f6a521c472358000326a50292e7c0b152f9768daa5827de1",
     "methods/gpt_6_astra_copilot/run_01/run.json": "ee0e0a53eb238cfbc845384d6344a07d75636653a7ab98e494dfba87498a93a5",
     "methods/gpt_6_astra_copilot/run_01/table_counts.jsonl": "8ae18d7d6a767e4fbfd8dc87495db66bcc991a5fab19784a50458674ed726d09",
+    "methods/gpt_6_astra_copilot/run_02/predictions.jsonl": "7487289405574ed22b5bff93552ec92f6dc5819362f5585561057aba3f8d922d",
+    "methods/gpt_6_astra_copilot/run_02/run.json": "ebef7d5ae835cf2c640dabbcdcdf356c44fe47d082db9d312c241c2beb0c1521",
+    "methods/gpt_6_astra_copilot/run_02/table_counts.jsonl": "ae0c470c34503a0553c03a23616a1bde9d453c18bc09401affe023a33f4aa076",
     "methods/gpt_6_astra_prompt_tuned/run_01/predictions.jsonl": "cfc7e9700704902d56677be5f977b04bfd5eeb4fb5767217ef0f4a82dbf8488a",
     "methods/gpt_6_astra_prompt_tuned/run_01/run.json": "4608e6cc0f265160d0b6eab76374d226ada8b5888a1dd68787687f0d50fcea4f",
     "methods/gpt_6_astra_prompt_tuned/run_01/table_counts.jsonl": "3c6b656873dd28ac86f86728720528bc1feec234425ccf109c3864a60a92e0b5",
@@ -536,6 +548,6 @@
     "methods/uniclean/run_01/run.json": "b7f6a01a71609bc5d4dc646a4341e8311d16f2d5c47f6f6751c8a47129e41e14",
     "methods/uniclean/run_01/table_counts.jsonl": "55b10c5089d24d7dd72c028a0825624b6717c0439135ec102d41f475f3d23e47",
     "reference.json": "af23877068559fa5bc1f896f13d3748b5e7c00e4ac19d7344da55d3a5f00305f",
-    "source_hashes.json": "c613048d4eb8370268a19b4ac6671053af980e195f89e8fcbaa2faf4c4df8c25"
+    "source_hashes.json": "e5a6e7363ee329cefcf67372e54f48e9a2cabe2cb71cb66954840b1392a46cee"
   }
 }
