@@ -124,15 +124,6 @@
       "metadata": "methods/daisyp/run_01/run.json"
     },
     {
-      "identity": "horizon/run_01",
-      "method": "Horizon",
-      "run": 1,
-      "point_view": true,
-      "predictions": "methods/horizon/run_01/predictions.jsonl",
-      "counts": "methods/horizon/run_01/table_counts.jsonl",
-      "metadata": "methods/horizon/run_01/run.json"
-    },
-    {
       "identity": "relative_trust/run_01",
       "method": "Relative Trust",
       "run": 1,
@@ -421,6 +412,33 @@
       "metadata": "methods/symspell/run_03/run.json"
     },
     {
+      "identity": "horizon/run_01",
+      "method": "Horizon",
+      "run": 1,
+      "point_view": true,
+      "predictions": "methods/horizon/run_01/predictions.jsonl",
+      "counts": "methods/horizon/run_01/table_counts.jsonl",
+      "metadata": "methods/horizon/run_01/run.json"
+    },
+    {
+      "identity": "horizon/run_02",
+      "method": "Horizon",
+      "run": 2,
+      "point_view": true,
+      "predictions": "methods/horizon/run_02/predictions.jsonl",
+      "counts": "methods/horizon/run_02/table_counts.jsonl",
+      "metadata": "methods/horizon/run_02/run.json"
+    },
+    {
+      "identity": "horizon/run_03",
+      "method": "Horizon",
+      "run": 3,
+      "point_view": true,
+      "predictions": "methods/horizon/run_03/predictions.jsonl",
+      "counts": "methods/horizon/run_03/table_counts.jsonl",
+      "metadata": "methods/horizon/run_03/run.json"
+    },
+    {
       "identity": "gpt_6_astra_codex/run_01",
       "method": "GPT-6-astra (Codex)",
       "run": 1,
@@ -476,8 +494,8 @@
     }
   ],
   "sha256": {
-    "expected/table3_point.csv": "cfc10ed017447946f7d6d7c4869dfac5f166aa4db25c657079be597549b23383",
-    "expected/table3_variability.csv": "adca0bc02a5af18fbf0789d431781720c7ce10532b48cbb62cdf803c0d04ba0e",
+    "expected/table3_point.csv": "97b7e849000e24c6a56778f0b19360b6bc94e47eca33520dad19ee5f96e22c07",
+    "expected/table3_variability.csv": "2aadfb5d26a55a84342ac8f241a333e27173dd7171b4993e1be981a31942e10a",
     "methods/bigdansing/run_01/predictions.jsonl": "69b27a55d01bf57870feea99a706ba52c94c78063dfa07f6ab8e42b0bee92df7",
     "methods/bigdansing/run_01/run.json": "3cd07557f795b50f15255305be935d0feb2345257ea66ca418224e116bbfc9a6",
     "methods/bigdansing/run_01/table_counts.jsonl": "92f20bbdef748f495c546c199ed37317f332a91113996d6a08937fa569d08a2c",
@@ -565,9 +583,15 @@
     "methods/holistic/run_01/predictions.jsonl": "08b58ad8af9f66ad353ea21c783354854072044bda88a763a90d69ebb3798033",
     "methods/holistic/run_01/run.json": "3247f88a5e086a8444a07340d08b59786b025bf37c827a59c07e0764abe6f5a9",
     "methods/holistic/run_01/table_counts.jsonl": "f41088277822ec6897f33747ebafd3e2457e120a39d23256b196ecb339dd4ece",
-    "methods/horizon/run_01/predictions.jsonl": "146c3740769e9c3e710ad5247689ef20aab00372b67668d28a1b728208776749",
-    "methods/horizon/run_01/run.json": "e3baa40d54e023d6438efe773d16e73d7941daa6c98ab7952615facd212d3c71",
-    "methods/horizon/run_01/table_counts.jsonl": "3793556942b000e02807bbecc20b885cc4c43b67c8090cea4ceb1b6dcb40965e",
+    "methods/horizon/run_01/predictions.jsonl": "46ac22af7ba32f3ac607fffa8b15cc6b4de40111766a36a121200638f7e1bd7a",
+    "methods/horizon/run_01/run.json": "77d85bcae6a9b69b1a34d4462c358d0e88ef8044193e732f6aea7dee9551ebbc",
+    "methods/horizon/run_01/table_counts.jsonl": "14e2a522bd0a8c17eb1c30d0d9d691b50d3c434771dfa19132350dd152f57271",
+    "methods/horizon/run_02/predictions.jsonl": "46ac22af7ba32f3ac607fffa8b15cc6b4de40111766a36a121200638f7e1bd7a",
+    "methods/horizon/run_02/run.json": "95de93cc6b5af322205b58b2a056a316ea0588f9b81b34be45a7b3ac8e90cc7c",
+    "methods/horizon/run_02/table_counts.jsonl": "14e2a522bd0a8c17eb1c30d0d9d691b50d3c434771dfa19132350dd152f57271",
+    "methods/horizon/run_03/predictions.jsonl": "46ac22af7ba32f3ac607fffa8b15cc6b4de40111766a36a121200638f7e1bd7a",
+    "methods/horizon/run_03/run.json": "99eff2320aec67ed43e35c6b2a4839425c54f42745912381efd6056eba189e31",
+    "methods/horizon/run_03/table_counts.jsonl": "14e2a522bd0a8c17eb1c30d0d9d691b50d3c434771dfa19132350dd152f57271",
     "methods/katara_kb/run_01/predictions.jsonl": "33fa455edf29aafdc46820dd59a14e628fd5eb863fe10c76de8211d88840ac83",
     "methods/katara_kb/run_01/run.json": "925c79a03a145f5b098b4215aa3c8289a1cd0187c3351444b4cbacbf98619f72",
     "methods/katara_kb/run_01/table_counts.jsonl": "627f95d35bec7c2a0c07ef6db93d6f49b842e710e66afea3dd4ee080eda31357",
@@ -608,6 +632,6 @@
     "methods/uniclean/run_01/run.json": "b7f6a01a71609bc5d4dc646a4341e8311d16f2d5c47f6f6751c8a47129e41e14",
     "methods/uniclean/run_01/table_counts.jsonl": "55b10c5089d24d7dd72c028a0825624b6717c0439135ec102d41f475f3d23e47",
     "reference.json": "af23877068559fa5bc1f896f13d3748b5e7c00e4ac19d7344da55d3a5f00305f",
-    "source_hashes.json": "0700db9201f90c365cc5698ca5767357078413462f98351a5e4c1dc8591c6e68"
+    "source_hashes.json": "e8bbe4e649a7951159137db24669151e645b15b195090fa8c1f2629b0f1a8f65"
   }
 }
