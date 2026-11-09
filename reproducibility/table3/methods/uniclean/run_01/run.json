@@ -1,7 +1,7 @@
 {
   "method": "UniClean",
   "run": 1,
-  "configuration": "uniclean_A",
+  "configuration": "outputs/baseline_repetitions/llm_constraints_v2/uniclean/run_01",
   "execution": {
     "005c05b7029cb909b653bd2942b5272c5030e130.xlsx_ed8fbac9": "complete",
     "00b9e90444835c9ddaa06bcbd95acb23c4abbed8.xlsx_24354cf0": "complete",
@@ -1004,7 +1004,10 @@
     "fe6fae37b6ca8319d0e67e052494a71f41ede5e6.xlsx_c52746a2": "complete",
     "ff92e4955c1888f2ccae78cd9f3afc2f04fe845c.xlsx_92859249": "complete"
   },
-  "settings": {},
+  "settings": {
+    "rule_source": "llm_dirty_only",
+    "protocol_sha256": "17ca73a7d0f55f11ef4c327a5ceea5d999076c2741d451ae34d75d12479df663"
+  },
   "population": {
     "tables": 1000,
     "targets": 1093,
