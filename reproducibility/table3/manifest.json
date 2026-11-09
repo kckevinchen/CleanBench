@@ -97,15 +97,6 @@
       "metadata": "methods/neuspell/run_01/run.json"
     },
     {
-      "identity": "daisyp/run_01",
-      "method": "DaisyP",
-      "run": 1,
-      "point_view": true,
-      "predictions": "methods/daisyp/run_01/predictions.jsonl",
-      "counts": "methods/daisyp/run_01/table_counts.jsonl",
-      "metadata": "methods/daisyp/run_01/run.json"
-    },
-    {
       "identity": "relative_trust/run_01",
       "method": "Relative Trust",
       "run": 1,
@@ -403,6 +394,33 @@
       "metadata": "methods/bigdansing/run_03/run.json"
     },
     {
+      "identity": "daisyp/run_01",
+      "method": "DaisyP",
+      "run": 1,
+      "point_view": true,
+      "predictions": "methods/daisyp/run_01/predictions.jsonl",
+      "counts": "methods/daisyp/run_01/table_counts.jsonl",
+      "metadata": "methods/daisyp/run_01/run.json"
+    },
+    {
+      "identity": "daisyp/run_02",
+      "method": "DaisyP",
+      "run": 2,
+      "point_view": true,
+      "predictions": "methods/daisyp/run_02/predictions.jsonl",
+      "counts": "methods/daisyp/run_02/table_counts.jsonl",
+      "metadata": "methods/daisyp/run_02/run.json"
+    },
+    {
+      "identity": "daisyp/run_03",
+      "method": "DaisyP",
+      "run": 3,
+      "point_view": true,
+      "predictions": "methods/daisyp/run_03/predictions.jsonl",
+      "counts": "methods/daisyp/run_03/table_counts.jsonl",
+      "metadata": "methods/daisyp/run_03/run.json"
+    },
+    {
       "identity": "holistic/run_01",
       "method": "Holistic",
       "run": 1,
@@ -566,8 +584,8 @@
     }
   ],
   "sha256": {
-    "expected/table3_point.csv": "ac2e83e1409424d3cd53aa1f69338dfd6ddc70975017d6f0f3ca62f41a69e714",
-    "expected/table3_variability.csv": "73c402e5108bd23548e99ddda0cd449c6b809e2ca9d483ab5cb2a4e1cdb64db8",
+    "expected/table3_point.csv": "850ab2c74f21e54df28e047f01cc7c4549ffccb611f15171816125f1e00d4a1a",
+    "expected/table3_variability.csv": "2f14355fff809da74dd10c939c1c93b79b447146fc6743409d704e1103a5ac2c",
     "methods/bigdansing/run_01/predictions.jsonl": "d73c6e661ba6e664766dd6c13006419fc5db5dc4e1c3e74578e6e47dcfcd8d57",
     "methods/bigdansing/run_01/run.json": "a8e66d4c4e1a4772e16b2001f51c5212224021da39734af5f9f26d2924756547",
     "methods/bigdansing/run_01/table_counts.jsonl": "a1a6b73fe70cbc6135f3ac912868c3e47c2caf6de62d938f1d767b288fc7e12d",
@@ -595,9 +613,15 @@
     "methods/cocoon/run_03/predictions.jsonl": "16b8e46b441913ee63a9f74deb1e1bdde751d2fcfc3d79d55202f0306c20c0d9",
     "methods/cocoon/run_03/run.json": "948d80b52601cea1a7d6a7b6798d8716118c54bdda9fe1c438a6596e7e867cd7",
     "methods/cocoon/run_03/table_counts.jsonl": "f2ddd93bb25e6af72dd00828b1f3b3ebc059ebc0a56b17d2a1d7d489f73f0627",
-    "methods/daisyp/run_01/predictions.jsonl": "29967e75c551e18f50bebe66c977c96fd041855fc77c61555940e1498064cce1",
-    "methods/daisyp/run_01/run.json": "1c5d3b22cba972a46ae787f0469ad3fbbb98054137882e2099fa73bd86260de5",
-    "methods/daisyp/run_01/table_counts.jsonl": "31ed47fc3edc32d15c6fda6ff86cb6bf43099a7428d8f9401668b557c1ea593b",
+    "methods/daisyp/run_01/predictions.jsonl": "7cf269e0c8d3f0fcdd91d816325c87b7d395e1a052f0135b6223992800c19a9e",
+    "methods/daisyp/run_01/run.json": "53e3f487801f644451a9daa33743eaea499a741177590c48ce269ce165ddda2e",
+    "methods/daisyp/run_01/table_counts.jsonl": "a499a220a6a376d37e894552c015b84f64deaf8f870953833fee1f4011e247ee",
+    "methods/daisyp/run_02/predictions.jsonl": "7cf269e0c8d3f0fcdd91d816325c87b7d395e1a052f0135b6223992800c19a9e",
+    "methods/daisyp/run_02/run.json": "e9b1a9f08c82355887f5cb643e1ca7fa68b691aee9c1306fdbb50b3b00bce6ae",
+    "methods/daisyp/run_02/table_counts.jsonl": "a499a220a6a376d37e894552c015b84f64deaf8f870953833fee1f4011e247ee",
+    "methods/daisyp/run_03/predictions.jsonl": "7cf269e0c8d3f0fcdd91d816325c87b7d395e1a052f0135b6223992800c19a9e",
+    "methods/daisyp/run_03/run.json": "b030d2293bce577430b7986ed784aed0430bae84e9e04a881dbe89119bf7e426",
+    "methods/daisyp/run_03/table_counts.jsonl": "a499a220a6a376d37e894552c015b84f64deaf8f870953833fee1f4011e247ee",
     "methods/excel/run_01/predictions.jsonl": "7a1f5fd27a11597f8319a47f918edefbce315225049956398526c1c88cb946e8",
     "methods/excel/run_01/run.json": "6cdc410c2f2ecfa32dd427392bd858287391ba9ce981a701788973fd07f13ee2",
     "methods/excel/run_01/table_counts.jsonl": "489e1ed92c40e6be4c767364f96edbdbc58feb39f310b5c98272fa14fc3b45fa",
@@ -728,6 +752,6 @@
     "methods/uniclean/run_01/run.json": "b7f6a01a71609bc5d4dc646a4341e8311d16f2d5c47f6f6751c8a47129e41e14",
     "methods/uniclean/run_01/table_counts.jsonl": "55b10c5089d24d7dd72c028a0825624b6717c0439135ec102d41f475f3d23e47",
     "reference.json": "af23877068559fa5bc1f896f13d3748b5e7c00e4ac19d7344da55d3a5f00305f",
-    "source_hashes.json": "5ae0503c6a7e986b9b0e33254028d785cbf5fa35a124c62dee8fa45496917143"
+    "source_hashes.json": "8d4bd5e434bd3c508da3c3c3be2cfad4783a1db48a368702e1db2f1a8b3a4376"
   }
 }
