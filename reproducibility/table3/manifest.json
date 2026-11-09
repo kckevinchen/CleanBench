@@ -88,33 +88,6 @@
   ],
   "runs": [
     {
-      "identity": "relative_trust/run_01",
-      "method": "Relative Trust",
-      "run": 1,
-      "point_view": true,
-      "predictions": "methods/relative_trust/run_01/predictions.jsonl",
-      "counts": "methods/relative_trust/run_01/table_counts.jsonl",
-      "metadata": "methods/relative_trust/run_01/run.json"
-    },
-    {
-      "identity": "relative_trust/run_02",
-      "method": "Relative Trust",
-      "run": 2,
-      "point_view": true,
-      "predictions": "methods/relative_trust/run_02/predictions.jsonl",
-      "counts": "methods/relative_trust/run_02/table_counts.jsonl",
-      "metadata": "methods/relative_trust/run_02/run.json"
-    },
-    {
-      "identity": "relative_trust/run_03",
-      "method": "Relative Trust",
-      "run": 3,
-      "point_view": true,
-      "predictions": "methods/relative_trust/run_03/predictions.jsonl",
-      "counts": "methods/relative_trust/run_03/table_counts.jsonl",
-      "metadata": "methods/relative_trust/run_03/run.json"
-    },
-    {
       "identity": "cleanagent/run_01",
       "method": "CleanAgent",
       "run": 1,
@@ -538,6 +511,33 @@
       "metadata": "methods/nadeef/run_03/run.json"
     },
     {
+      "identity": "relative_trust/run_01",
+      "method": "Relative Trust",
+      "run": 1,
+      "point_view": true,
+      "predictions": "methods/relative_trust/run_01/predictions.jsonl",
+      "counts": "methods/relative_trust/run_01/table_counts.jsonl",
+      "metadata": "methods/relative_trust/run_01/run.json"
+    },
+    {
+      "identity": "relative_trust/run_02",
+      "method": "Relative Trust",
+      "run": 2,
+      "point_view": true,
+      "predictions": "methods/relative_trust/run_02/predictions.jsonl",
+      "counts": "methods/relative_trust/run_02/table_counts.jsonl",
+      "metadata": "methods/relative_trust/run_02/run.json"
+    },
+    {
+      "identity": "relative_trust/run_03",
+      "method": "Relative Trust",
+      "run": 3,
+      "point_view": true,
+      "predictions": "methods/relative_trust/run_03/predictions.jsonl",
+      "counts": "methods/relative_trust/run_03/table_counts.jsonl",
+      "metadata": "methods/relative_trust/run_03/run.json"
+    },
+    {
       "identity": "uniclean/run_01",
       "method": "UniClean",
       "run": 1,
@@ -620,8 +620,8 @@
     }
   ],
   "sha256": {
-    "expected/table3_point.csv": "cdc298349e80462d734b68a385cd231c141cc41748c67c2d74297eee5829e7a2",
-    "expected/table3_variability.csv": "cb687e2811d0b01c06f0c7f64e1a3eac68fda0f31f8a0505d19c1831810b73e8",
+    "expected/table3_point.csv": "17fc2d02440f9f9585e5d8bca9962c10b190e5a7f7509b200321b70176239135",
+    "expected/table3_variability.csv": "cef33f6e9e802fb8684f81973cab6200751c70af586a45e13bd882b88b004cb1",
     "methods/bigdansing/run_01/predictions.jsonl": "d73c6e661ba6e664766dd6c13006419fc5db5dc4e1c3e74578e6e47dcfcd8d57",
     "methods/bigdansing/run_01/run.json": "a8e66d4c4e1a4772e16b2001f51c5212224021da39734af5f9f26d2924756547",
     "methods/bigdansing/run_01/table_counts.jsonl": "a1a6b73fe70cbc6135f3ac912868c3e47c2caf6de62d938f1d767b288fc7e12d",
@@ -772,15 +772,15 @@
     "methods/neuspell/run_03/predictions.jsonl": "ae667eb5d0aa07c82a5b10e65a52d33229b5d9af76bba8331e61d3e61fa9a5b2",
     "methods/neuspell/run_03/run.json": "08399d95acff140c59afe88d711a80a14be75762112da769191139434a944b0b",
     "methods/neuspell/run_03/table_counts.jsonl": "414641d83b51bbb50de06e3455ab8a0193cab135aaaf9ff60b9e662555ea9279",
-    "methods/relative_trust/run_01/predictions.jsonl": "7381a119b5a830d332dfc7365d29bcbbba818457c7d427cadfb81fa078dfb5c1",
-    "methods/relative_trust/run_01/run.json": "bd4e68a55a67b8bab4b7cde71e9848bdfe679c9e4aac7a7bff58aa8fa2192d61",
-    "methods/relative_trust/run_01/table_counts.jsonl": "2fd0a822b5ca1328e7301520d40faccbe95ff76242d3ae93a0c887508dcda1bd",
-    "methods/relative_trust/run_02/predictions.jsonl": "44194fbca78e3940beff1c5e82a7c14d9a323148c2a52580271598a2128e6cbc",
-    "methods/relative_trust/run_02/run.json": "27bda75e91a4a5314d3fe328f37f2d8f353f7f4ec7da35dc081868a6fec2d370",
-    "methods/relative_trust/run_02/table_counts.jsonl": "d87755a9438b7022d540a0074e7a2b30ffa98435b293108808128f3bdfea11dc",
-    "methods/relative_trust/run_03/predictions.jsonl": "adf6593b889a8d5d57c23ba1864e12553289731bc7bf3196576a1ff6a0174920",
-    "methods/relative_trust/run_03/run.json": "7a2de33e4ff083932e677e092c366ae1ffaaf843d08f78a1fd17a83236065fb5",
-    "methods/relative_trust/run_03/table_counts.jsonl": "5c011269392e94802c65571e00b7831214a20aea0616b8f9617b41c5b25abaa2",
+    "methods/relative_trust/run_01/predictions.jsonl": "2be48f0600286ee1a093b8cdf64f60a76d8cc42d007fafc84e59bc47099a9055",
+    "methods/relative_trust/run_01/run.json": "a4117224520a534aac600bb215a8d5162926a4aa71cbabd898e622ee436f2719",
+    "methods/relative_trust/run_01/table_counts.jsonl": "31b27038a3ca964e75019b0e54ae39ebd4b43a04cf2ce176575a46f1ded4d08c",
+    "methods/relative_trust/run_02/predictions.jsonl": "caf842e40b87f31b455d5568710e1044adc6512c9eec328cd95008165e02b9cf",
+    "methods/relative_trust/run_02/run.json": "c8970ed47b86b52489a44fc8601aae474ae11642b670936eca69e30483fdc290",
+    "methods/relative_trust/run_02/table_counts.jsonl": "f5350e6d0d2b04c8ad2f2bbba76360ffceb051a3c8696908f2db9fb09ee37933",
+    "methods/relative_trust/run_03/predictions.jsonl": "a2940404372af9fde38b6391d61b22d0200b9c6dba1ab62754ceb3b15be7ef1b",
+    "methods/relative_trust/run_03/run.json": "55f528317c130eb5aa50b4caf1b4275d1baf4908c7f4b19317a7bb1fa4e25be2",
+    "methods/relative_trust/run_03/table_counts.jsonl": "658e5672f1066f18fe88115f1a4879efff2f3e53eb57a34a5cdb91860a640e1b",
     "methods/symspell/run_01/predictions.jsonl": "ea719cff179e11bdb78242e0c8ed9087bd9e5a7a4f25040408a282a12aa977b3",
     "methods/symspell/run_01/run.json": "a40d681c809ef0fdeced72c3fe091264e6b5d3264ec236e2dcb6f65eed69dc33",
     "methods/symspell/run_01/table_counts.jsonl": "e718b53bb4558e07be360f376593d8602ffb510f054c8afb99e6817fd99bfca0",
@@ -800,6 +800,6 @@
     "methods/uniclean/run_03/run.json": "e55d8337cda9d81d39379e9559dbe27c7c5d62e3def4b69a73ea2fce338b4a01",
     "methods/uniclean/run_03/table_counts.jsonl": "55b10c5089d24d7dd72c028a0825624b6717c0439135ec102d41f475f3d23e47",
     "reference.json": "af23877068559fa5bc1f896f13d3748b5e7c00e4ac19d7344da55d3a5f00305f",
-    "source_hashes.json": "20bf546a5d138745f3be1c26a807c33bd04f037dd8cb091ab0f79307ee880fb7"
+    "source_hashes.json": "378a6dab2b5c970f43e5e8a810ece71e0eec2c856d8d19b8c2f9fa4e3df324bc"
   }
 }
