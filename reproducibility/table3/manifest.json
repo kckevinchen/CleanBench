@@ -133,15 +133,6 @@
       "metadata": "methods/relative_trust/run_03/run.json"
     },
     {
-      "identity": "nadeef/run_01",
-      "method": "NADEEF",
-      "run": 1,
-      "point_view": true,
-      "predictions": "methods/nadeef/run_01/predictions.jsonl",
-      "counts": "methods/nadeef/run_01/table_counts.jsonl",
-      "metadata": "methods/nadeef/run_01/run.json"
-    },
-    {
       "identity": "uniclean/run_01",
       "method": "UniClean",
       "run": 1,
@@ -493,6 +484,33 @@
       "metadata": "methods/llunatic/run_03/run.json"
     },
     {
+      "identity": "nadeef/run_01",
+      "method": "NADEEF",
+      "run": 1,
+      "point_view": true,
+      "predictions": "methods/nadeef/run_01/predictions.jsonl",
+      "counts": "methods/nadeef/run_01/table_counts.jsonl",
+      "metadata": "methods/nadeef/run_01/run.json"
+    },
+    {
+      "identity": "nadeef/run_02",
+      "method": "NADEEF",
+      "run": 2,
+      "point_view": true,
+      "predictions": "methods/nadeef/run_02/predictions.jsonl",
+      "counts": "methods/nadeef/run_02/table_counts.jsonl",
+      "metadata": "methods/nadeef/run_02/run.json"
+    },
+    {
+      "identity": "nadeef/run_03",
+      "method": "NADEEF",
+      "run": 3,
+      "point_view": true,
+      "predictions": "methods/nadeef/run_03/predictions.jsonl",
+      "counts": "methods/nadeef/run_03/table_counts.jsonl",
+      "metadata": "methods/nadeef/run_03/run.json"
+    },
+    {
       "identity": "gpt_6_astra_codex/run_01",
       "method": "GPT-6-astra (Codex)",
       "run": 1,
@@ -548,8 +566,8 @@
     }
   ],
   "sha256": {
-    "expected/table3_point.csv": "2c7c1e6def1b0e69a1b8be11705842387cefacaa2876462d2afd52c2c7d3f912",
-    "expected/table3_variability.csv": "15f4776574040f146421d35f7d1cf0ee3ef7adf566386e3d5c5fb5fb69be2182",
+    "expected/table3_point.csv": "ac2e83e1409424d3cd53aa1f69338dfd6ddc70975017d6f0f3ca62f41a69e714",
+    "expected/table3_variability.csv": "73c402e5108bd23548e99ddda0cd449c6b809e2ca9d483ab5cb2a4e1cdb64db8",
     "methods/bigdansing/run_01/predictions.jsonl": "d73c6e661ba6e664766dd6c13006419fc5db5dc4e1c3e74578e6e47dcfcd8d57",
     "methods/bigdansing/run_01/run.json": "a8e66d4c4e1a4772e16b2001f51c5212224021da39734af5f9f26d2924756547",
     "methods/bigdansing/run_01/table_counts.jsonl": "a1a6b73fe70cbc6135f3ac912868c3e47c2caf6de62d938f1d767b288fc7e12d",
@@ -676,9 +694,15 @@
     "methods/llunatic/run_03/predictions.jsonl": "c20fe998029e07d8844b6dac83a1b3b471de74524571138bf806ca4a5ce22527",
     "methods/llunatic/run_03/run.json": "0286cfca3ea2342a748d2fecdd1f014ce4ea5da4be6efc44ad01b02a4a8e3188",
     "methods/llunatic/run_03/table_counts.jsonl": "9b75a0ec253ff6bc7f60435a255d4516acb8b222393dbad9173d1693a0aa6b8d",
-    "methods/nadeef/run_01/predictions.jsonl": "706bf1e7bb092f0c2015d368e04bfc0cdf4e2ddc51cb70964dc7f31500961511",
-    "methods/nadeef/run_01/run.json": "34f4fc9f437822151c43a9a580ea444cbb5ba8b0e6e071538e558783f12a5940",
-    "methods/nadeef/run_01/table_counts.jsonl": "21bd21cc08165f7339ff6744c76d4ccdf740ccdc7892c2a222129f6347981c5f",
+    "methods/nadeef/run_01/predictions.jsonl": "70a3a754a2c1436ed2be0d29516408689278178a0b3b65f6a93355bf773ef247",
+    "methods/nadeef/run_01/run.json": "cb32619829a2cff162bc200ec5fafbbc8ac484ac615b54c8f0abe092efdb77c7",
+    "methods/nadeef/run_01/table_counts.jsonl": "e4304f70a0f57d198b3d8e9cd7c085270c225fae73443990bb99e61eebfdc69c",
+    "methods/nadeef/run_02/predictions.jsonl": "70a3a754a2c1436ed2be0d29516408689278178a0b3b65f6a93355bf773ef247",
+    "methods/nadeef/run_02/run.json": "99d3553d5d5ae7d409a775ceb23441855ffa5b5a50ff1bebec71413e720d61ae",
+    "methods/nadeef/run_02/table_counts.jsonl": "e4304f70a0f57d198b3d8e9cd7c085270c225fae73443990bb99e61eebfdc69c",
+    "methods/nadeef/run_03/predictions.jsonl": "70a3a754a2c1436ed2be0d29516408689278178a0b3b65f6a93355bf773ef247",
+    "methods/nadeef/run_03/run.json": "f44ca750432fbcfa952835fd898e270cdc2a4353edab53738e74960ee12acd94",
+    "methods/nadeef/run_03/table_counts.jsonl": "e4304f70a0f57d198b3d8e9cd7c085270c225fae73443990bb99e61eebfdc69c",
     "methods/neuspell/run_01/predictions.jsonl": "b2c7cd7f465ffd97633dd4371c15adb47a2b320fdf1e609253f7533c49e643f9",
     "methods/neuspell/run_01/run.json": "bcbaee2609f920e0700c1b5e7a71fdaeeffb1ade6b446bd8dda0d879df78bf0a",
     "methods/neuspell/run_01/table_counts.jsonl": "ee839a05fdd845512f3adf3ecc1c84922fbe877ef7bfab06c331bd893b9d8c1a",
@@ -704,6 +728,6 @@
     "methods/uniclean/run_01/run.json": "b7f6a01a71609bc5d4dc646a4341e8311d16f2d5c47f6f6751c8a47129e41e14",
     "methods/uniclean/run_01/table_counts.jsonl": "55b10c5089d24d7dd72c028a0825624b6717c0439135ec102d41f475f3d23e47",
     "reference.json": "af23877068559fa5bc1f896f13d3748b5e7c00e4ac19d7344da55d3a5f00305f",
-    "source_hashes.json": "1db4ea96ec5f9f9d1042e3760e88387c8f0d16a037275e0b0a8896978f7f5a3f"
+    "source_hashes.json": "5ae0503c6a7e986b9b0e33254028d785cbf5fa35a124c62dee8fa45496917143"
   }
 }
