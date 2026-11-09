@@ -1,7 +1,7 @@
 {
   "method": "SymSpell",
   "run": 1,
-  "configuration": "symspell",
+  "configuration": "outputs/baseline_repetitions/native/symspell/run_01",
   "execution": {
     "005c05b7029cb909b653bd2942b5272c5030e130.xlsx_ed8fbac9": "complete",
     "00b9e90444835c9ddaa06bcbd95acb23c4abbed8.xlsx_24354cf0": "complete",
@@ -911,7 +911,7 @@
     "c9e758eeebcc7350e142e61344d041271d93a662.xlsx_72ae8688": "complete",
     "cb80f39780caf52e962f84e78258ec9e8664c69f.xlsx_a4e6347d": "complete",
     "cba4902651ec15d38f5d6d33c6d802d7d10b7c74.xlsx_599b0dfb": "complete",
-    "cee51baf709c54997857b76ece0d733e45eead7d.xlsx_981f5272": "failed",
+    "cee51baf709c54997857b76ece0d733e45eead7d.xlsx_981f5272": "complete",
     "cf7cfe410a9d95bbb98c1cf59e8c9c3dec3a830e.xlsx_2e3c5b8c": "complete",
     "cfcea5de8d8f90682ac9da2e64a567c613ea8e99.xlsx_92e6435e": "complete",
     "d015a726fb3ff2e311fe79fd374b93bbaa0a8aae.xlsx_f63d756d": "complete",
@@ -1004,7 +1004,40 @@
     "fe6fae37b6ca8319d0e67e052494a71f41ede5e6.xlsx_c52746a2": "complete",
     "ff92e4955c1888f2ccae78cd9f3afc2f04fe845c.xlsx_92859249": "complete"
   },
-  "settings": {},
+  "settings": {
+    "packages": {
+      "symspellpy": "6.9.0",
+      "pandas": "3.0.3"
+    },
+    "source_sha256": {
+      "external/typo_baselines/run_typo.py": "ddcd745a1bf570d98454b679e75dc36852e595f8099fd6b420ff27c81acd9285",
+      "external/rein/common.py": "adc4583da4cbd2d396abb8184367c9b6c4624b79f89be9077f4263984b0b0e29",
+      "src/evaluation/baseline_repetitions.py": "4c3c49bece9f0aa862eec83adb17824cf7438d27e35bc4c26b80027dce0e8e1d"
+    },
+    "environment": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "TOKENIZERS_PARALLELISM": "false"
+    },
+    "command": [
+      "/datadrive/kaiwen/data-quality-llm/external/typo_baselines/venv/bin/python",
+      "/datadrive/kaiwen/data-quality-llm/external/typo_baselines/run_typo.py",
+      "--tool",
+      "symspell",
+      "--datasets-dir",
+      "/datadrive/kaiwen/data-quality-llm/outputs/baseline_campaign/20260910/snapshot",
+      "--results-dir",
+      "{run_dir}/raw",
+      "--mode",
+      "default",
+      "--max-edit-distance",
+      "2",
+      "--min-token-len",
+      "4",
+      "--skip-allcaps"
+    ]
+  },
   "population": {
     "tables": 1000,
     "targets": 1093,

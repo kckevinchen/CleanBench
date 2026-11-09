@@ -66,7 +66,7 @@ The script verifies artifact checksums, scores every saved prediction again,
 checks the per-table counts, computes each run's micro metrics, and reconstructs
 both Table 3 views. It prints `MATCH` and exits successfully when every reported
 number and repetition count agrees with the frozen table. The current bundle
-was verified in approximately 2.5 seconds.
+was verified in a few seconds.
 
 To aggregate the saved per-table counts directly:
 
