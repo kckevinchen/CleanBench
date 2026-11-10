@@ -132,9 +132,6 @@ def test_fixed_method_inputs_and_bridge_provenance_match():
     inputs = json.loads((ROOT / "baselines/config/input_hashes.json").read_text())
     for relative, expected in inputs.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected, relative
-    rules = json.loads((ROOT / "baselines/config/constraint_rules.json").read_text())
-    assert len(rules["tables"]) == 1000
-    assert rules["tables"].keys() == rules["input_rows_sha256"].keys()
     for entry in json.loads((ROOT / "baselines/provenance.json").read_text()):
         assert (
             hashlib.sha256((ROOT / entry["destination"]).read_bytes()).hexdigest()
@@ -178,3 +175,40 @@ def test_api_retry_keeps_both_attempts_and_stops_on_auth_failure(tmp_path, monke
     with pytest.raises(AuthError):
         api.direct("gpt41", failed / "dirty.csv", failed, 1)
     assert not (failed / "attempt_02").exists()
+
+
+def test_constraint_file_is_required_and_mounted_readonly(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLEANBENCH_RULES_FILE", raising=False)
+    spec = {"id": "nadeef", "image": "classical"}
+    with pytest.raises(ValueError, match="CLEANBENCH_RULES_FILE"):
+        docker_command(spec, tmp_path, tmp_path, 1)
+    path = tmp_path / "local-rules.json"
+    path.write_text('{"tables": {}}')
+    monkeypatch.setenv("CLEANBENCH_RULES_FILE", str(path))
+    command = docker_command(spec, tmp_path, tmp_path, 1)
+    assert (
+        f"type=bind,source={path},target=/run/cleanbench-inputs/constraint_rules.json,readonly"
+        in command
+    )
+    assert "CLEANBENCH_RULES_FILE=/run/cleanbench-inputs/constraint_rules.json" in command
+    assert path.read_text() not in " ".join(command)
+    other = docker_command({"id": "symspell", "image": "spelling"}, tmp_path, tmp_path, 1)
+    assert not any("constraint_rules" in part for part in other)
+
+
+def test_rule_loader_checks_the_external_file_checksum(tmp_path, monkeypatch):
+    from baselines import rules
+
+    monkeypatch.delenv("CLEANBENCH_RULES_FILE", raising=False)
+    with pytest.raises(ValueError, match="not bundled"):
+        rules.load()
+    path = tmp_path / "local-rules.json"
+    path.write_text('{"tables": {}}')
+    monkeypatch.setenv("CLEANBENCH_RULES_FILE", str(path))
+    with pytest.raises(ValueError, match="do not match"):
+        rules.load()
+    monkeypatch.setattr(rules, "EXPECTED_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
+    assert rules.load() == {"tables": {}}
+    path.write_text('{"tables": {"changed": {}}}')
+    with pytest.raises(ValueError, match="do not match"):
+        rules.load()

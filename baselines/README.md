@@ -16,12 +16,13 @@ validation workflow is unchanged. The direct API clients preserve the prompt,
 API type, and reasoning settings used by each model. CLI versions are pinned in
 the coding-agent image.
 
-`config/constraint_rules.json` contains the fixed, dirty-data-only LLM rules for
-all 1,000 tables and all eight constraint baselines. Table IDs and input-row
-checksums bind rules to their source tables. Column aliases `C0`, `C1`, etc.
-refer to the original column positions. No benchmark labels are passed into
-inference. `prompts/` contains the three selected API prompts, the coding-agent
-task and error definitions, and the CleanAgent prompts.
+The eight constraint baselines read their rules from `CLEANBENCH_RULES_FILE`.
+The experiment rules are currently not distributed. The loader verifies the
+file checksum, and table IDs and input-row checksums bind rules to source tables.
+Column aliases `C0`, `C1`, etc. refer to the original column positions.
+No benchmark labels are passed into inference. `prompts/` contains the three
+selected API prompts, the coding-agent task and error definitions, and the
+CleanAgent prompts.
 
 Outputs use zero-based row and column coordinates and preserve literal cell
 strings. Native failures are recorded as failed executions. An authentication

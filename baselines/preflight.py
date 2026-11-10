@@ -31,6 +31,19 @@ PACKAGES = {
 
 
 def check(method):
+    if method in {
+        "bigdansing",
+        "holistic",
+        "daisyp",
+        "horizon",
+        "relative_trust",
+        "nadeef",
+        "llunatic",
+        "uniclean",
+    }:
+        from baselines.rules import load
+
+        load()
     for name in PACKAGES[method]:
         importlib.import_module(name)
     external = NATIVE_ROOT / "external"

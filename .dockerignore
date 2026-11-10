@@ -27,3 +27,5 @@
 **/build/
 **/runtime.env
 **/secrets/
+**/constraint_rules.json
+**/llm_inferred_constraints.html

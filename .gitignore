@@ -32,3 +32,5 @@ AGENTS.md
 /baselines/native/external/katara/knowledge-base/
 **/mamba_env/
 /docker/runtime.env
+/docs/llm_inferred_constraints.html
+**/constraint_rules.json

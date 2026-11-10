@@ -112,6 +112,8 @@ execution record, and per-table score counts.
 The Docker package provides configured runners for all 19 noncommercial
 end-to-end methods in Table 3. It installs the native dependencies and runs each
 selected method three times. API credentials are supplied at runtime.
+Constraint methods additionally require a local rules file; the experiment
+rules are currently not distributed.
 
 ```bash
 python scripts/docker_table3.py build --method SymSpell

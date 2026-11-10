@@ -51,6 +51,12 @@ they are not written into command plans or images. `.env` is ignored by Git.
 
 ## Build and run methods
 
+The eight constraint methods require a local rules file; the experiment rules
+are currently not distributed. Set `CLEANBENCH_RULES_FILE` to its absolute path
+before running those methods. The file is checked against the experiment
+checksum and mounted read-only, without being copied into an image.
+Other methods and saved-results reproduction do not require this file.
+
 ```bash
 python scripts/docker_table3.py list
 python scripts/docker_table3.py build
@@ -86,9 +92,10 @@ below. Their interactive applications are not launched by this Docker runner.
 
 Each method receives only the dirty input CSVs and its own output directory.
 Evaluation runs separately on the host using the published Table 3 scorer.
-The fixed prompts and LLM-inferred rules used in the experiments are included
-under `baselines/`; fresh runs execute inference again rather than reusing saved
-predictions. Each run saves predictions, execution status, logs, per-table
+The fixed prompts used in the experiments are included under `baselines/`;
+constraint methods load their rules from `CLEANBENCH_RULES_FILE`. Fresh runs
+execute inference again rather than reusing saved predictions.
+Each run saves predictions, execution status, logs, per-table
 counts, and its comparison with Table 3. Model responses and generated code are
 saved under the corresponding table directory.
 

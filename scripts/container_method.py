@@ -56,6 +56,22 @@ def docker_command(
         "--mount",
         f"type=bind,source={output.resolve()},target=/run/cleanbench",
     ]
+    if spec["image"] in {"classical", "uniclean"}:
+        filename = os.environ.get("CLEANBENCH_RULES_FILE")
+        if not filename or not Path(filename).is_file():
+            raise ValueError(
+                "Constraint rules are not bundled; set CLEANBENCH_RULES_FILE to a local rules file"
+            )
+        path = Path(filename).resolve()
+        target = "/run/cleanbench-inputs/constraint_rules.json"
+        command.extend(
+            [
+                "--mount",
+                f"type=bind,source={path},target={target},readonly",
+                "--env",
+                "CLEANBENCH_RULES_FILE=" + target,
+            ]
+        )
     names = (
         API_ENV
         if spec["image"] in {"api", "cleanagent", "cocoon"}

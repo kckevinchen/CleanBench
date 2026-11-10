@@ -50,8 +50,10 @@ METHODS = CONSTRAINTS | {
 
 
 def constraint(method, dirty, work, dataset, repetition):
+    from baselines.rules import load
+
     header, rows = read_table(dirty)
-    reference = read_json(ROOT / "config/constraint_rules.json")
+    reference = load()
     bank = reference["tables"]
     if dataset not in bank:
         raise ValueError("No fixed LLM rules for this table ID")

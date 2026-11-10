@@ -61,6 +61,10 @@ def main():
     if args.action == "plan":
         print(json.dumps(plan(specs), indent=2))
         return
+    if args.action == "run":
+        # Reject missing local inputs before starting any of the selected methods.
+        for spec in specs.values():
+            docker_command(spec, args.output, args.output, 1, check=True)
     subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL, check=True)
     if args.action == "build":
         for target in sorted({s["image"] for s in specs.values()}):
