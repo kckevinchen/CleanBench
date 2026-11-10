@@ -1,0 +1,6 @@
+symspellpy==6.9.0
+neuspell==1.0.0
+transformers==4.38.2
+gdown==5.2.0
+pandas==3.0.3
+numpy==2.5.0

@@ -1,0 +1,9 @@
+{
+  "baselines/prompts/api_run_01.txt": "589f90e2efb52cea36f37562d1df055bf8316d174fb3591fc3f04d7aadea2a81",
+  "baselines/prompts/api_run_02.txt": "f83eb265d9f9b7c326071960612099132bac190624615fa87352c447d9f6fc6b",
+  "baselines/prompts/api_run_03.txt": "2e66bbe5e9befd9bb8325dcf3666c6e32e0588573a2f82587775c0e9b7dc6bfe",
+  "baselines/prompts/cleanagent_repaired.yaml": "64db715445bb81a8f3147d42cb8cc96e9c0d108138f292e77e5f277fba5afaf5",
+  "baselines/prompts/coding_agent_end_to_end.yaml": "4a0e77798636bf4230685a693f7dbc541a2168db6526ee7dc2f0f05cfe6ab769",
+  "baselines/prompts/coding_error_types.txt": "2f851186c2425afc9ad727f623a56d45a5602ec4953b39b4cb833033551cc975",
+  "baselines/config/constraint_rules.json": "687c520d4d866fe2f88e87ff11f1c11c4e541ba09d3a32487a8628d0eef4dbd8"
+}

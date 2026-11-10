@@ -21,3 +21,14 @@ AGENTS.md
 /RELEASE_VALIDATION.md
 /requirements-dev.txt
 /scripts/verify_benchmark.py
+
+# Downloaded baseline implementations and local runtime credentials.
+/baselines/native/external/adr/adr_repo/
+/baselines/native/external/llunatic/upstream/
+/baselines/native/external/uniclean/upstream/
+/baselines/native/external/rein/rein-benchmark/
+/baselines/native/external/cleanagent/CleanAgent/
+/baselines/native/external/cocoon/cocoon_repo/
+/baselines/native/external/katara/knowledge-base/
+**/mamba_env/
+/docker/runtime.env

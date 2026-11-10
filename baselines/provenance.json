@@ -1,0 +1,253 @@
+[
+  {
+    "source": "external/adr/native_correction.py",
+    "source_sha256": "8f713de299bc5731b48e25f3280c6ab4292a7783e79446ce97117c55724aa1e4",
+    "destination": "baselines/native/external/adr/native_correction.py",
+    "declarations": [
+      "UPSTREAM",
+      "SOURCE",
+      "load_horizon"
+    ],
+    "destination_sha256": "9a37fbee7fa4045ef4d30272843a5497aad7c063fe9434282a7b1635697df0df"
+  },
+  {
+    "source": "external/adr/dc_correction.py",
+    "source_sha256": "8cfd35c2967c515d45c012eac08dedfe352f68316a85da1db068f85993f2477e",
+    "destination": "baselines/native/external/adr/dc_correction.py",
+    "declarations": [
+      "SOURCE_DIR",
+      "CLASSES",
+      "load_upstream",
+      "grid"
+    ],
+    "destination_sha256": "b1ac874b4ef5d5cdc968adfbc089d243978fc7896f9a39dcfe5f2ae2699692d4"
+  },
+  {
+    "source": "external/adr/horizon_header_recovery.py",
+    "source_sha256": "867ae5cc9885020b0345f4216e6aff082272331097ed72425b8f2a96b5167977",
+    "destination": "baselines/native/external/adr/horizon_header_recovery.py",
+    "declarations": [
+      "FDStream",
+      "FDLine",
+      "SourceColumn"
+    ],
+    "destination_sha256": "e0e54c220fa79fcdc9327a43459c43e9ca300bde5c1586bb68b70b8d7a708067"
+  },
+  {
+    "source": "external/adr/horizon_blind.py",
+    "source_sha256": "6e9a354f84fe9c6a46e4d38eb2eef267c776fea24e00bcb886a84c93b08a331f",
+    "destination": "baselines/native/external/adr/horizon_blind.py",
+    "declarations": [
+      "execute"
+    ],
+    "destination_sha256": "1dd9690090a68e9d5ccb5e6726af2dda6fb81d5dd9763b3c386833db86bfcd3f"
+  },
+  {
+    "source": "external/adr/relative_native.py",
+    "source_sha256": "2e9bd78773baf68f845c73f0f1e6bd1a3f5400ac7d5bc27dd2571999d4a97e20",
+    "destination": "baselines/native/external/adr/relative_native.py",
+    "declarations": [
+      "UPSTREAM",
+      "SOURCE",
+      "load_upstream",
+      "execute"
+    ],
+    "destination_sha256": "94e2eb4f333dae920013b723be76d5184504a0efc97c286c863cceeb5f69606d"
+  },
+  {
+    "source": "external/adr/daisy_native.py",
+    "source_sha256": "ed0bc2bd88ff70f3c311e80d5992f67b72c774b805472ce8b92d6e4ca9c6ffd2",
+    "destination": "baselines/native/external/adr/daisy_native.py",
+    "declarations": [
+      "SOURCE_DIR",
+      "MODULES",
+      "sha",
+      "load_core",
+      "translated_rules",
+      "execute"
+    ],
+    "destination_sha256": "162aa677e192ab58caa432d14dae13e82ef18bb62b3308b49e19a69f6e0b5547"
+  },
+  {
+    "source": "external/adr/daisy_point.py",
+    "source_sha256": "2f654d6c2cfe6419c5ef6278ef2731276215bbe6c9aceb93548e5c76e27c1824",
+    "destination": "baselines/native/external/adr/daisy_point.py",
+    "declarations": [
+      "point_inference"
+    ],
+    "destination_sha256": "b1e9b4a81d59fa30254a8b54df559a7e80340b8adf03d9488577351597c9f6d6"
+  },
+  {
+    "source": "external/nadeef/native.py",
+    "source_sha256": "d67f77402e2714c76a7b325ac6fbb1b29a5673d861df709cbc56b1e3ea66008c",
+    "destination": "baselines/native/external/nadeef/native.py",
+    "declarations": [
+      "ROOT",
+      "predictions"
+    ],
+    "destination_sha256": "f9c455df60710ee3187327149263ef305c7c9b97aeefd87749a90cac5f104574"
+  },
+  {
+    "source": "external/llunatic/run.py",
+    "source_sha256": "8814c1af4babc706c6e680a5163fc0649fb05eeae803c2f7a21a140c759c7ae5",
+    "destination": "baselines/native/external/llunatic/run.py",
+    "declarations": [
+      "scenario",
+      "decode",
+      "execute"
+    ],
+    "destination_sha256": "dae11a0fd608b1f6acb4ffc151bca61904467fd8959528a03cfd3540ba7ccdac"
+  },
+  {
+    "source": "external/uniclean/run.py",
+    "source_sha256": "20150627731b6d13ef670407402c4d0ec780c4dd6606a893ef22186f26232c31",
+    "destination": "baselines/native/external/uniclean/run.py",
+    "declarations": [
+      "execute"
+    ],
+    "destination_sha256": "d205f3235d0164639f647b4f03de603a688d8d31b359e79b4b7a10978c0b8109"
+  },
+  {
+    "source": "external/typo_baselines/run_typo.py",
+    "source_sha256": "ddcd745a1bf570d98454b679e75dc36852e595f8099fd6b420ff27c81acd9285",
+    "destination": "baselines/native/external/typo_baselines/run_typo.py",
+    "declarations": [
+      "TOKEN_RE",
+      "HAS_ALPHA",
+      "Cell",
+      "build_symspell",
+      "symspell_correct",
+      "symspell_flag",
+      "run_symspell",
+      "_norm",
+      "run_neuspell"
+    ],
+    "destination_sha256": "a794dbde78a3e40553bbc1277b1e7327a7837408432f750442802e4dd3a34008"
+  },
+  {
+    "source": "src/evaluation/constraint_bank/context_native.py",
+    "source_sha256": "1440f025ca8784a019c6eb9d0582aedd852b41ae76601668e7c75c4ae85dd872",
+    "destination": "baselines/native/constraints/context_native.py",
+    "declarations": [
+      "execute_native"
+    ],
+    "destination_sha256": "6048d59fc4a86120d8002f7e371be02258d26d3f44b5a42e0990f036e2ab1d60"
+  },
+  {
+    "source": "src/evaluation/constraint_bank/comparison_worker.py",
+    "source_sha256": "853ebbdbcea3cf79e6e2786fa3dac3f7ffce61ab6cd369db6b8e83995d8d3122",
+    "destination": "baselines/native/constraints/comparison_worker.py",
+    "declarations": [
+      "prepare_java",
+      "execute"
+    ],
+    "destination_sha256": "d66a2a1cdc60bf20e9e43cf68c9832930591c4718fbeb2238bf77d3d16f444a3",
+    "adaptation": "Removed branches for methods not included in Table 3."
+  },
+  {
+    "source": "src/evaluation/academic_completion/katara.py",
+    "source_sha256": "02e05924e5a14da4fe5a570146aef09066c93cda09e13b93e59a601837b2570a",
+    "destination": "baselines/native/katara.py",
+    "declarations": [
+      "SOURCE",
+      "native",
+      "infer"
+    ],
+    "destination_sha256": "3d551542b0eb8fd8f2ea936d58847b5128e4c129b37b04902ebb8cf4bc536d28",
+    "adaptation": "Resolve upstream source relative to the package."
+  },
+  {
+    "source": "external/cocoon/native.py",
+    "source_sha256": "8e6d8d47c04b9cbe709b30e7dbe43e343588a8948d0fda17472e3f0a3311a1ad",
+    "destination": "baselines/native/external/cocoon/native.py",
+    "declarations": [
+      "UPSTREAM",
+      "load_upstream",
+      "clean_table"
+    ],
+    "destination_sha256": "9ef1d0e55b3778bc4b54c4bc5d8331dbe6b3188ca0de0462e5ea501f67e20517"
+  },
+  {
+    "source": "external/cleanagent/workflow.py",
+    "source_sha256": "9bd5c95e5a9be0a8e08cfa2e977674c3951cb8254afa68f98bbf3c8778e831ec",
+    "destination": "baselines/native/external/cleanagent/workflow.py",
+    "declarations": null,
+    "destination_sha256": "9bd5c95e5a9be0a8e08cfa2e977674c3951cb8254afa68f98bbf3c8778e831ec"
+  },
+  {
+    "source": "external/cleanagent/execution.py",
+    "source_sha256": "0a3c5554968424feffe6cf49c522ac8ab9fa4ebe6b90b9343ace158847b81a31",
+    "destination": "baselines/native/external/cleanagent/execution.py",
+    "declarations": null,
+    "destination_sha256": "b8564e32f8ddb88fd6894c3539b26dcfe661eeb635175494d7d96f5b7690456f",
+    "adaptation": "Use the outer Docker container and prlimit instead of host-specific execution paths; preserve the AutoGen execution interface."
+  },
+  {
+    "source": "external/adr/horizon_header_recovery.py",
+    "source_sha256": "867ae5cc9885020b0345f4216e6aff082272331097ed72425b8f2a96b5167977",
+    "destination": "baselines/native/external/adr/horizon_header_recovery.py",
+    "declarations": [
+      "FDStream",
+      "FDLine",
+      "SourceColumn"
+    ],
+    "destination_sha256": "e0e54c220fa79fcdc9327a43459c43e9ca300bde5c1586bb68b70b8d7a708067"
+  },
+  {
+    "source": "external/cleanagent/repaired.py",
+    "source_sha256": "e56bd6920442d382929648b18143073bd2749847701cd36a0e2827f12d5f5c10",
+    "destination": "baselines/native/external/cleanagent/repaired.py",
+    "declarations": [
+      "REVISION",
+      "identity_column",
+      "validate_output",
+      "execute"
+    ],
+    "destination_sha256": "4f83b7432f17fd1becb77906d97f3a4577dabbba4c3a69c88a2eaaf3a5350d0c",
+    "adaptation": "Receive the runtime API transport explicitly; omit the separate repair-only entry path."
+  },
+  {
+    "source": "external/cleanagent/transport.py",
+    "source_sha256": "e05bf13e882fd14ab751445e2f4b7ebce38306528890ffa8f18744c62df0dd8c",
+    "destination": "baselines/native/external/cleanagent/transport.py",
+    "declarations": [
+      "NativeClient"
+    ],
+    "destination_sha256": "9e5a4063a5045fc67c5553a46b8d60179d3440d245d83c73a31250d7481bc872"
+  },
+  {
+    "source": "external/llunatic/NativeBridge.java",
+    "source_sha256": "4a5b42981a32294e72fefef28961b5185a379fdb193a0e6ec49551169cc85b3b",
+    "destination": "baselines/native/external/llunatic/NativeBridge.java",
+    "declarations": null,
+    "destination_sha256": "4a5b42981a32294e72fefef28961b5185a379fdb193a0e6ec49551169cc85b3b"
+  },
+  {
+    "source": "external/nadeef/NadeefBatch.java",
+    "source_sha256": "45e95f640675258fd9b8b9c10e08ebc96e497730735a0f0afc203e32524964a0",
+    "destination": "baselines/native/external/nadeef/NadeefBatch.java",
+    "declarations": null,
+    "destination_sha256": "45e95f640675258fd9b8b9c10e08ebc96e497730735a0f0afc203e32524964a0"
+  },
+  {
+    "source": "external/adr/horizon_header_recovery.py",
+    "source_sha256": "867ae5cc9885020b0345f4216e6aff082272331097ed72425b8f2a96b5167977",
+    "destination": "baselines/native/external/adr/horizon_header_recovery.py",
+    "declarations": [
+      "FDStream",
+      "FDLine",
+      "SourceColumn"
+    ],
+    "destination_sha256": "e0e54c220fa79fcdc9327a43459c43e9ca300bde5c1586bb68b70b8d7a708067"
+  },
+  {
+    "source": "external/adr/dc_blind.py",
+    "source_sha256": "ffb9473b6ef942c4c229b5d1b5f007f9643adb5e66a8cda197abdfc4ec84114d",
+    "destination": "baselines/native/external/adr/dc_blind.py",
+    "declarations": [
+      "sha",
+      "read_detection"
+    ],
+    "destination_sha256": "cddb374a9b5d061e11d27cd24d86b9b68505646b846d42e72bdf5bd2c0086b65"
+  }
+]

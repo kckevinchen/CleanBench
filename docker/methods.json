@@ -1,0 +1,78 @@
+{
+  "SymSpell": {
+    "id": "symspell",
+    "image": "spelling"
+  },
+  "NeuSpell": {
+    "id": "neuspell",
+    "image": "neuspell"
+  },
+  "BigDansing": {
+    "id": "bigdansing",
+    "image": "classical"
+  },
+  "Holistic": {
+    "id": "holistic",
+    "image": "classical"
+  },
+  "DaisyP": {
+    "id": "daisyp",
+    "image": "classical"
+  },
+  "Horizon": {
+    "id": "horizon",
+    "image": "classical"
+  },
+  "Relative Trust": {
+    "id": "relative_trust",
+    "image": "classical"
+  },
+  "NADEEF": {
+    "id": "nadeef",
+    "image": "classical"
+  },
+  "LLUNATIC": {
+    "id": "llunatic",
+    "image": "classical"
+  },
+  "UniClean": {
+    "id": "uniclean",
+    "image": "uniclean"
+  },
+  "KATARA (KB)": {
+    "id": "katara",
+    "image": "katara"
+  },
+  "CleanAgent": {
+    "id": "cleanagent",
+    "image": "cleanagent"
+  },
+  "Cocoon": {
+    "id": "cocoon",
+    "image": "cocoon"
+  },
+  "GPT-4.1 (Prompt-tuned)": {
+    "id": "gpt41",
+    "image": "api"
+  },
+  "GPT-5.2 (Prompt-tuned)": {
+    "id": "gpt52",
+    "image": "api"
+  },
+  "GPT-5.5 (Prompt-tuned)": {
+    "id": "gpt55",
+    "image": "api"
+  },
+  "GPT-6-astra (Prompt-tuned)": {
+    "id": "astra",
+    "image": "api"
+  },
+  "GPT-6-astra (Codex)": {
+    "id": "codex",
+    "image": "coding"
+  },
+  "GPT-6-astra (Copilot)": {
+    "id": "copilot",
+    "image": "coding"
+  }
+}

@@ -106,3 +106,21 @@ and identities are retained in each saved run's `run.json`.
 The outputs include `table3_point.csv`, `table3_variability.csv`, `per_run.csv`,
 and `comparison.json`. Each run also retains its command, log, predictions,
 execution record, and per-table score counts.
+
+## Docker runners
+
+The Docker package provides configured runners for all 19 noncommercial
+end-to-end methods in Table 3. It installs the native dependencies and runs each
+selected method three times. API credentials are supplied at runtime.
+
+```bash
+python scripts/docker_table3.py build --method SymSpell
+python scripts/docker_table3.py run --method SymSpell --output outputs/symspell
+```
+
+See [Docker setup and credentials](docker/README.md) to run all methods or select
+other baselines. The saved-results path can also run in Docker:
+
+```bash
+python scripts/docker_table3.py replay --output build/table3_docker_replay
+```

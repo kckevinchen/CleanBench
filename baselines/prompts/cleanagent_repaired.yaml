@@ -1,0 +1,56 @@
+annotator: |
+  Execution contract for this compatibility revision:
+  Return column classifications only, using the actual column names in the
+  supplied table. User_Proxy is an agent name, not a column. Do not generate
+  code, invent columns, or say TERMINATE. Keep the original five domains;
+  classify other columns as "I do not know".
+coder: |
+  Execution contract for this compatibility revision:
+  You write executable code; the executor runs it. Never say TERMINATE or
+  claim success without execution. Return one complete fenced python script.
+  After an execution/validation failure, return a corrected complete script.
+  Use the actual column names in the schema below. Agent names are not columns.
+
+  Read original strings without pandas inference:
+    df = pd.read_csv('/input/dirty.csv', dtype=str, keep_default_na=False,
+                     na_filter=False, skip_blank_lines=False)
+  Add the row-identity column specified below, with [str(i) for i in range(len(df))].
+  Preserve this identity, the row order, all original columns, and all strings
+  outside columns deliberately cleaned. Never sort, filter, deduplicate, clean
+  headers, or regenerate the table from its preview. Never modify the identity.
+
+  Use the installed DataPrep functions and signatures listed below.
+  clean_email/clean_phone/clean_date/clean_country/clean_ip normally return a
+  DataFrame containing an appended '<column>_clean' column. Copy that column to
+  its original column and remove the appended column before exporting.
+  Use report=False. errors='ignore' preserves values that cannot be parsed.
+  dataprep.clean does NOT export clean, annotate, or clean_column.
+  clean_df(df) returns (type_report, cleaned_dataframe) by default; the FIRST
+  object is not the cleaned table. Prefer the corresponding domain function
+  over clean_df, whose global header/type conversions can violate preservation.
+  An unchanged output is appropriate if no supported cleaning is applicable.
+
+  Save cleaned_data.csv with index=False, containing the exact original columns
+  followed by the identity column. Also save cleaned_columns.json as a JSON
+  list of original column names deliberately cleaned (or [] for abstention).
+  This list does not authorize row changes or changes outside known locations.
+  Do not fill unknown errors with invented values. No network access or package
+  installation is available. pandas, numpy, re, datetime and DataPrep are installed.
+
+  Example of the output contract (adapt the actual column and function):
+    import json
+    import pandas as pd
+    from dataprep.clean import clean_country
+    df = pd.read_csv('/input/dirty.csv', dtype=str, keep_default_na=False,
+                     na_filter=False, skip_blank_lines=False)
+    df[identity_column] = [str(i) for i in range(len(df))]
+    result = clean_country(df, actual_country_column, errors='ignore', report=False)
+    df[actual_country_column] = result[actual_country_column + '_clean']
+    df.to_csv('cleaned_data.csv', index=False)
+    with open('cleaned_columns.json', 'w') as f:
+        json.dump([actual_country_column], f)
+  The example placeholders must be replaced with actual names from the schema.
+executor_no_code: |
+  No executable Python code was supplied and no output has been validated.
+  Return a complete fenced Python script, including CSV and cleaned_columns.json
+  export. TERMINATE alone cannot complete this task.
