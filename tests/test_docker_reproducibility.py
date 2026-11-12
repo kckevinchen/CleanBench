@@ -177,11 +177,13 @@ def test_api_retry_keeps_both_attempts_and_stops_on_auth_failure(tmp_path, monke
     assert not (failed / "attempt_02").exists()
 
 
-def test_constraint_file_is_required_and_mounted_readonly(tmp_path, monkeypatch):
+def test_constraint_file_override_is_optional_and_mounted_readonly(tmp_path, monkeypatch):
     monkeypatch.delenv("CLEANBENCH_RULES_FILE", raising=False)
     spec = {"id": "nadeef", "image": "classical"}
-    with pytest.raises(ValueError, match="CLEANBENCH_RULES_FILE"):
-        docker_command(spec, tmp_path, tmp_path, 1)
+    command = docker_command(spec, tmp_path, tmp_path, 1)
+    assert not any(
+        "constraint_rules" in part or "CLEANBENCH_RULES_FILE" in part for part in command
+    )
     path = tmp_path / "local-rules.json"
     path.write_text('{"tables": {}}')
     monkeypatch.setenv("CLEANBENCH_RULES_FILE", str(path))
@@ -200,8 +202,11 @@ def test_rule_loader_checks_the_external_file_checksum(tmp_path, monkeypatch):
     from baselines import rules
 
     monkeypatch.delenv("CLEANBENCH_RULES_FILE", raising=False)
-    with pytest.raises(ValueError, match="not bundled"):
-        rules.load()
+    bank = rules.load()
+    assert len(bank["tables"]) == len(bank["input_rows_sha256"]) == 1000
+    from baselines.runner import CONSTRAINTS
+
+    assert all(set(table) == CONSTRAINTS for table in bank["tables"].values())
     path = tmp_path / "local-rules.json"
     path.write_text('{"tables": {}}')
     monkeypatch.setenv("CLEANBENCH_RULES_FILE", str(path))
@@ -212,3 +217,13 @@ def test_rule_loader_checks_the_external_file_checksum(tmp_path, monkeypatch):
     path.write_text('{"tables": {"changed": {}}}')
     with pytest.raises(ValueError, match="do not match"):
         rules.load()
+
+
+def test_missing_rule_override_does_not_silently_use_bundled_rules(tmp_path, monkeypatch):
+    from baselines import rules
+
+    monkeypatch.setenv("CLEANBENCH_RULES_FILE", str(tmp_path / "missing.json"))
+    with pytest.raises(ValueError, match="Missing constraint rules"):
+        rules.load()
+    with pytest.raises(ValueError, match="CLEANBENCH_RULES_FILE"):
+        docker_command({"id": "nadeef", "image": "classical"}, tmp_path, tmp_path, 1)

@@ -16,9 +16,11 @@ validation workflow is unchanged. The direct API clients preserve the prompt,
 API type, and reasoning settings used by each model. CLI versions are pinned in
 the coding-agent image.
 
-The eight constraint baselines read their rules from `CLEANBENCH_RULES_FILE`.
-The experiment rules are currently not distributed. The loader verifies the
-file checksum, and table IDs and input-row checksums bind rules to source tables.
+The eight constraint baselines use the fixed LLM-inferred rules in
+`config/constraint_rules.json`, included in the Docker images. The loader
+verifies the file checksum, and table IDs and input-row checksums bind rules
+to source tables. `CLEANBENCH_RULES_FILE` optionally selects a local copy of
+the same experiment rules.
 Column aliases `C0`, `C1`, etc. refer to the original column positions.
 No benchmark labels are passed into inference. `prompts/` contains the three
 selected API prompts, the coding-agent task and error definitions, and the

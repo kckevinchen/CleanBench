@@ -1,5 +1,7 @@
 # Run Table 3 baselines with Docker
 
+This package reproduces Table 3 from the submitted paper.
+
 Use Docker Engine with BuildKit (or Docker Desktop) and Python 3.10+ on the host.
 The images target Linux x86-64 and install each method's pinned dependencies and
 upstream source. Builds download the required models and knowledge base; no API
@@ -51,11 +53,11 @@ they are not written into command plans or images. `.env` is ignored by Git.
 
 ## Build and run methods
 
-The eight constraint methods require a local rules file; the experiment rules
-are currently not distributed. Set `CLEANBENCH_RULES_FILE` to its absolute path
-before running those methods. The file is checked against the experiment
-checksum and mounted read-only, without being copied into an image.
-Other methods and saved-results reproduction do not require this file.
+The eight constraint methods use the LLM-inferred rules bundled in
+`baselines/config/constraint_rules.json`; no separate download or API key is
+needed for these methods. The loader checks the experiment checksum.
+Optionally, set `CLEANBENCH_RULES_FILE` to an absolute path to mount a local
+copy of the same rules read-only.
 
 ```bash
 python scripts/docker_table3.py list
@@ -93,7 +95,7 @@ below. Their interactive applications are not launched by this Docker runner.
 Each method receives only the dirty input CSVs and its own output directory.
 Evaluation runs separately on the host using the published Table 3 scorer.
 The fixed prompts used in the experiments are included under `baselines/`;
-constraint methods load their rules from `CLEANBENCH_RULES_FILE`. Fresh runs
+constraint methods use the bundled rules by default. Fresh runs
 execute inference again rather than reusing saved predictions.
 Each run saves predictions, execution status, logs, per-table
 counts, and its comparison with Table 3. Model responses and generated code are

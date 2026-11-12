@@ -29,3 +29,4 @@
 **/secrets/
 **/constraint_rules.json
 **/llm_inferred_constraints.html
+!baselines/config/constraint_rules.json

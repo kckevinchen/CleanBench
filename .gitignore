@@ -34,3 +34,4 @@ AGENTS.md
 /docker/runtime.env
 /docs/llm_inferred_constraints.html
 **/constraint_rules.json
+!/baselines/config/constraint_rules.json
