@@ -261,9 +261,10 @@ Project code is [MIT licensed](LICENSE). This license does not relicense
 third-party table content; see [data provenance](benchmark/README.md#provenance).
 
 
-## Reproduce Table 3
+## Reproduce main results
 
-Run `python scripts/reproduce_table3.py` to recompute Table 3 from the retained
-per-method outputs in a few seconds. Use `scripts/run_table3.py` to execute
-fresh method runs with a command plan. See
-[`reproducible_readme.md`](reproducible_readme.md) for both workflows.
+We prepared scripts to make it easy to reproduce the main results in our paper.
+One could either run `python scripts/reproduce_table3.py` to re-generate 
+Table 3 from the retained per-method outputs in a few seconds, 
+or use `scripts/run_table3.py` to execute every method from scratch. See
+[`reproducible_readme.md`](reproducible_readme.md) for details of both workflows.
