@@ -263,7 +263,7 @@ third-party table content; see [data provenance](benchmark/README.md#provenance)
 
 ## Reproduce main results
 
-We prepared scripts to make it easy to reproduce the main results in our paper.
+We prepared scripts and docker images to make it easy to reproduce the main results in our paper.
 One could either run `python scripts/reproduce_table3.py` to re-generate 
 Table 3 from the retained per-method outputs in a few seconds, 
 or use `scripts/run_table3.py` to execute every method from scratch. See
